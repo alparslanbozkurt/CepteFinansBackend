@@ -29,6 +29,7 @@ public class AuthService {
         }
 
         User user = User.builder()
+                .fullName(request.getFullName())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .is2faEnabled(false)

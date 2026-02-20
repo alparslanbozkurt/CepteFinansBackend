@@ -35,7 +35,17 @@ public class JwtService {
 
     // 3. Token Üretme (Sadece UserDetails ile)
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> extraClaims = new HashMap<>();
+
+        // Gelen userDetails nesnesi senin kendi "User" entity sınıfınsa, içinden fullName'i al:
+        // Not: Kendi User sınıfını (Entity) yukarıda import etmeyi unutma!
+        if (userDetails instanceof com.arvenlabs.ceptefinansbackend.model.entity.User) {
+            com.arvenlabs.ceptefinansbackend.model.entity.User user = (com.arvenlabs.ceptefinansbackend.model.entity.User) userDetails;
+            extraClaims.put("fullName", user.getFullName());
+            // Eğer veritabanındaki ad-soyad sütununun adı farklıysa (örn: getName()), getFullName() kısmını ona göre düzelt.
+        }
+
+        return generateToken(extraClaims, userDetails);
     }
 
     // 4. Token Üretme (Ekstra verilerle - Örn: Rol, ID vb.)
