@@ -71,6 +71,21 @@ Content-Type: application/json
 }
 ```
 
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Kayıt başarılı",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJmdWxsTmFtZSI6IkFscGFyc2xhbiBCb3prdXJ0Iiwic3ViIjoiZGVuZW1lM0BhcnZlbmxhYnMuY29tIiwiaWF0IjoxNzcxNzc2ODk2LCJleHAiOjE3NzE3Nzc3OTZ9.fguaddfPHtzm3k7moVir2sh9VfbHL_5WkDeMsY8KwU4",
+    "refreshToken": "7b5625ed-e143-416c-9c5e-e29c0274029b",
+    "message": "Kayıt işlemi başarılı."
+  },
+  "timestamp": "2026-02-22T19:14:56.537873"
+}
+```
+
 ---
 
 #### `POST /auth/login` — Giriş Yap
