@@ -3,6 +3,7 @@ package com.arvenlabs.ceptefinansbackend.controller;
 import com.arvenlabs.ceptefinansbackend.dto.request.LoginRequest;
 import com.arvenlabs.ceptefinansbackend.dto.request.RefreshTokenRequest;
 import com.arvenlabs.ceptefinansbackend.dto.request.RegisterRequest;
+import com.arvenlabs.ceptefinansbackend.dto.request.VerifyEmailRequest;
 import com.arvenlabs.ceptefinansbackend.dto.response.ApiResponse;
 import com.arvenlabs.ceptefinansbackend.dto.response.AuthResponse;
 import com.arvenlabs.ceptefinansbackend.service.AuthService;
@@ -40,5 +41,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout(@RequestBody RefreshTokenRequest request) {
         authService.logout(request.getToken());
         return ResponseEntity.ok(ApiResponse.success(null, "Çıkış başarılı"));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyEmail(@RequestBody VerifyEmailRequest request) {
+        AuthResponse response = authService.verifyEmail(request);
+        return ResponseEntity.ok(ApiResponse.success(response, response.getMessage()));
     }
 }

@@ -24,4 +24,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     Double findTotalExpense(@Param("userId") UUID userId);
 
     List<Transaction> findAllByUserIdOrderByTransactionDateDesc(UUID userId);
+
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId " +
+            "AND t.category.id = :categoryId " +
+            "AND t.type = 'EXPENSE' " +
+            "AND t.transactionDate BETWEEN :startDate AND :endDate")
+    Double findTotalExpenseByCategoryAndDate(
+            @Param("userId") UUID userId,
+            @Param("categoryId") Long categoryId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }

@@ -54,4 +54,13 @@ public class Budget {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "is_seventy_percent_notified")
+    @Builder.Default
+    private boolean isSeventyPercentNotified = false;
+
+    // %100 (Bütçe aşıldı) uyarısı gönderildi mi?
+    @Column(name = "is_hundred_percent_notified")
+    @Builder.Default
+    private boolean isHundredPercentNotified = false;
 }

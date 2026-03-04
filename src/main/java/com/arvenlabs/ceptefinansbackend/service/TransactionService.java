@@ -6,6 +6,7 @@ import com.arvenlabs.ceptefinansbackend.model.entity.Category;
 import com.arvenlabs.ceptefinansbackend.model.entity.Transaction;
 import com.arvenlabs.ceptefinansbackend.model.entity.User;
 import com.arvenlabs.ceptefinansbackend.model.enums.TransactionSource;
+import com.arvenlabs.ceptefinansbackend.repository.BudgetRepository;
 import com.arvenlabs.ceptefinansbackend.repository.CategoryRepository;
 import com.arvenlabs.ceptefinansbackend.repository.TransactionRepository;
 import com.arvenlabs.ceptefinansbackend.repository.UserRepository;
@@ -27,6 +28,8 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final BudgetRepository budgetRepository;
 
     // --- 1. HARCAMA EKLE (CREATE) ---
     @Transactional
@@ -56,6 +59,11 @@ public class TransactionService {
                 .build();
 
         Transaction saved = transactionRepository.save(transaction);
+
+        // EĞER GİDER İSE BÜTÇE KONTROLÜ YAP
+        if (saved.getType().name().equals("EXPENSE")) {
+            checkBudgetLimits(user, category, saved.getTransactionDate());
+        }
 
         return mapToResponse(saved);
     }
@@ -153,5 +161,43 @@ public class TransactionService {
         String email = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+    }
+
+    // Bütçe Kontrolü ve Bildirim Gönderimi
+    private void checkBudgetLimits(User user, Category category, LocalDate transactionDate) {
+        // 1. Bu tarihe uyan aktif bir bütçe var mı?
+        LocalDate startDate = transactionDate.withDayOfMonth(1);
+        LocalDate endDate = transactionDate.withDayOfMonth(transactionDate.lengthOfMonth());
+
+        budgetRepository.findOverlappingBudget(user.getId(), category.getId(), startDate, endDate)
+                .ifPresent(budget -> {
+                    // 2. Bu ayki toplam harcamayı çek
+                    Double totalSpent = transactionRepository.findTotalExpenseByCategoryAndDate(
+                            user.getId(), category.getId(), budget.getStartDate(), budget.getEndDate());
+
+                    if (totalSpent == null) totalSpent = 0.0;
+
+                    double percentage = (totalSpent / budget.getAmount().doubleValue()) * 100;
+
+                    // 3. %100 Kontrolü (HATA BURADA DÜZELTİLDİ: createAndSendNotification kullanıldı)
+                    if (percentage >= 100.0 && !budget.isHundredPercentNotified()) {
+                        notificationService.createAndSendNotification(user,
+                                "🚨 Bütçe Aşıldı!",
+                                category.getName() + " kategorisi için belirlediğin bütçeyi aştın!");
+
+                        budget.setHundredPercentNotified(true);
+                        budget.setSeventyPercentNotified(true);
+                        budgetRepository.save(budget);
+                    }
+                    // 4. %70 Kontrolü (HATA BURADA DÜZELTİLDİ: createAndSendNotification kullanıldı)
+                    else if (percentage >= 70.0 && !budget.isSeventyPercentNotified()) {
+                        notificationService.createAndSendNotification(user,
+                                "⚠️ Bütçe Uyarısı",
+                                category.getName() + " bütçenin %70'ini doldurdun. Dikkatli harca!");
+
+                        budget.setSeventyPercentNotified(true);
+                        budgetRepository.save(budget);
+                    }
+                });
     }
 }

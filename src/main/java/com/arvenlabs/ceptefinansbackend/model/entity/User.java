@@ -34,6 +34,10 @@ public class User implements UserDetails {
     @Column(name = "email", unique = true, nullable = false)
     private String email;
 
+    @Column(name = "is_email_verified")
+    @Builder.Default
+    private boolean isEmailVerified = false;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
