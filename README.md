@@ -124,7 +124,7 @@ Tüm endpointler aşağıdaki genel sarmalayıcı (wrapper) yapı ile yanıt dö
 
 ## API Uç Noktaları (Endpoints)
 
-> **Base URL:** `http://api.ceptefinans.arvenlabs.com/api/v1`
+> **Base URL:** `https://api.ceptefinans.arvenlabs.com/api/v1`
 >
 > **Yetki gerektiren tüm isteklerde** Header'a şu eklenmeli: `Authorization: Bearer <Access_Token>`
 
@@ -136,7 +136,9 @@ Tüm endpointler aşağıdaki genel sarmalayıcı (wrapper) yapı ile yanıt dö
 
 #### 1. `POST /api/v1/auth/register` — Yeni Kullanıcı Kaydı
 
-Yeni bir kullanıcı hesabı oluşturur.
+Yeni bir kullanıcı hesabı oluşturur. Kayıt başarılı olduğunda **token dönmez**; bunun yerine kullanıcının e-posta adresine 6 haneli bir doğrulama kodu gönderilir. Token almak için `/auth/verify-email` endpoint'i kullanılmalıdır.
+
+> **Not:** Doğrulama kodu 5 dakika geçerlidir.
 
 **Yetki:** Gerekmiyor
 
@@ -168,9 +170,9 @@ Content-Type: application/json
   "success": true,
   "message": "Kayıt başarılı",
   "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJmdWxsTmFtZSI6IkFscGFyc2...",
-    "refreshToken": "7b5625ed-e143-416c-9c5e-e29c0274029b",
-    "message": "Kayıt işlemi başarılı."
+    "accessToken": null,
+    "refreshToken": null,
+    "message": "Kayıt başarılı. Lütfen e-postanıza gönderilen 6 haneli kodu girin."
   },
   "timestamp": "2026-02-22T19:14:56.537873"
 }
@@ -180,15 +182,17 @@ Content-Type: application/json
 
 | Alan | Tip | Açıklama |
 |------|-----|----------|
-| `accessToken` | string (JWT) | Kimlik doğrulama için kullanılan kısa ömürlü token (15 dk) |
-| `refreshToken` | string (UUID) | Access token yenilemek için kullanılan uzun ömürlü token (7 gün) |
-| `message` | string | İşlem sonuç mesajı |
+| `accessToken` | null | Bu aşamada token **verilmez** |
+| `refreshToken` | null | Bu aşamada token **verilmez** |
+| `message` | string | Kullanıcıyı e-posta doğrulamasına yönlendiren mesaj |
 
 ---
 
 #### 2. `POST /api/v1/auth/login` — Giriş Yap
 
 Kullanıcı girişi yapar; Access Token ve Refresh Token döner.
+
+> **Önemli:** E-postası doğrulanmamış kullanıcılar giriş yapamaz. Bu durumda `"Lütfen giriş yapmadan önce e-posta adresinizi onaylayın."` hatası döner.
 
 **Yetki:** Gerekmiyor
 
@@ -329,7 +333,12 @@ Content-Type: application/json
 
 #### 5. `POST /api/v1/auth/verify-email` — E-posta Doğrulama
 
-Kayıt sonrası gönderilen doğrulama kodunu kontrol eder ve e-postayı doğrular.
+Kayıt sonrası e-postaya gönderilen 6 haneli kodu doğrular. Başarılı doğrulama sonucunda kullanıcı sisteme kabul edilir ve **Access Token + Refresh Token** döner. Bu endpoint, `/auth/register` ile başlayan akışın tamamlandığı adımdır.
+
+> **Hata Durumları:**
+> - Kod hatalıysa: `"Girdiğiniz kod hatalı!"`
+> - Kodun süresi dolduysa (5 dk): `"Bu kodun süresi dolmuş. Lütfen yeni bir kod isteyin."`
+> - E-posta zaten doğrulandıysa: `"E-posta adresiniz zaten onaylanmış. Giriş yapabilirsiniz."`
 
 **Yetki:** Gerekmiyor
 
@@ -338,7 +347,7 @@ Kayıt sonrası gönderilen doğrulama kodunu kontrol eder ve e-postayı doğrul
 | Alan | Tip | Zorunlu | Açıklama |
 |------|-----|---------|----------|
 | `email` | string | Evet | Doğrulanacak e-posta adresi |
-| `code` | string | Evet | E-posta ile gönderilen doğrulama kodu |
+| `code` | string | Evet | E-posta ile gönderilen 6 haneli doğrulama kodu |
 
 ```http
 POST /api/v1/auth/verify-email
@@ -348,7 +357,7 @@ Content-Type: application/json
 ```json
 {
   "email": "deneme1@arvenlabs.com",
-  "code": "123456"
+  "code": "048312"
 }
 ```
 
@@ -357,11 +366,11 @@ Content-Type: application/json
 ```json
 {
   "success": true,
-  "message": "E-posta doğrulandı.",
+  "message": "E-posta doğrulandı! Hoş geldiniz.",
   "data": {
     "accessToken": "eyJhbGciOiJIUzI1NiJ9.dogrulanmisToken...",
     "refreshToken": "yeni-refresh-token-uuid",
-    "message": "E-posta doğrulandı."
+    "message": "E-posta doğrulandı! Hoş geldiniz."
   },
   "timestamp": "2026-02-22T19:15:00.000000"
 }
@@ -371,8 +380,8 @@ Content-Type: application/json
 
 | Alan | Tip | Açıklama |
 |------|-----|----------|
-| `accessToken` | string (JWT) | Doğrulama sonrası oluşturulan Access Token |
-| `refreshToken` | string (UUID) | Doğrulama sonrası oluşturulan Refresh Token |
+| `accessToken` | string (JWT) | Doğrulama sonrası oluşturulan Access Token (15 dk) |
+| `refreshToken` | string (UUID) | Doğrulama sonrası oluşturulan Refresh Token (7 gün) |
 | `message` | string | İşlem sonuç mesajı |
 
 ---
