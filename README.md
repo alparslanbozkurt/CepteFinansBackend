@@ -26,6 +26,7 @@ Uygulama, "Domain-Driven Design" (Etki Alanı Odaklı Tasarım) prensiplerine ya
 - **E-posta Doğrulama:** Kayıt sonrası e-posta doğrulama kodu gönderimi ve doğrulama.
 - **Güvenli Çıkış (Logout):** Refresh token'ların veritabanından kalıcı olarak silinmesi (Revocation).
 - **Veri Şifreleme:** Şifrelerin BCrypt algoritması ile hashlenerek saklanması.
+- **Şifre Sıfırlama (Forgot Password):** E-posta yoluyla 15 dakika geçerli sıfırlama bağlantısı gönderimi. Kullanıcı numaralandırma (user enumeration) saldırılarına karşı koruma.
 - `fullName` desteği ile kişiselleştirilmiş profil altyapısı.
 
 ### 2. Finans Çekirdeği (Transaction Domain)
@@ -383,6 +384,91 @@ Content-Type: application/json
 | `accessToken` | string (JWT) | Doğrulama sonrası oluşturulan Access Token (15 dk) |
 | `refreshToken` | string (UUID) | Doğrulama sonrası oluşturulan Refresh Token (7 gün) |
 | `message` | string | İşlem sonuç mesajı |
+
+---
+
+#### 6. `POST /api/v1/auth/forgot-password` — Şifre Sıfırlama Bağlantısı Gönder
+
+Kullanıcının e-posta adresine şifre sıfırlama bağlantısı gönderir. Güvenlik amacıyla, girilen e-posta sistemde kayıtlı olup olmadığından bağımsız olarak her zaman aynı başarı mesajı döner (kullanıcı numaralandırma koruması).
+
+> **Not:** Sıfırlama bağlantısı 15 dakika geçerlidir.
+
+**Yetki:** Gerekmiyor
+
+**Query Parameters:**
+
+| Parametre | Tip | Zorunlu | Açıklama |
+|-----------|-----|---------|----------|
+| `email` | string | Evet | Şifresi sıfırlanacak e-posta adresi |
+
+```http
+POST /api/v1/auth/forgot-password?email=deneme@arvenlabs.com
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Eğer e-posta adresiniz sistemimizde kayıtlıysa, şifre sıfırlama bağlantısı gönderilmiştir.",
+  "data": null,
+  "timestamp": "2026-02-22T19:20:00.000000"
+}
+```
+
+**Response `data` Alanları:**
+
+| Alan | Tip | Açıklama |
+|------|-----|----------|
+| `data` | null | Bu işlemde veri dönmez |
+
+---
+
+#### 7. `POST /api/v1/auth/reset-password` — Şifreyi Sıfırla
+
+`/auth/forgot-password` adımında e-posta ile gönderilen token'ı kullanarak kullanıcının şifresini günceller. Token tek kullanımlıktır; başarılı işlem sonrasında silinir.
+
+> **Hata Durumları:**
+> - Token geçersiz veya bulunamıyorsa: `"Geçersiz veya bulunamayan token."`
+> - Token süresi dolmuşsa (15 dk): `"Bu şifre sıfırlama bağlantısının süresi dolmuş."`
+
+**Yetki:** Gerekmiyor
+
+**Request Body:**
+
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `token` | string (UUID) | Evet | E-posta ile gönderilen sıfırlama token'ı |
+| `newPassword` | string | Evet | Yeni şifre |
+
+```http
+POST /api/v1/auth/reset-password
+Content-Type: application/json
+```
+
+```json
+{
+  "token": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "newPassword": "YeniGucluSifre456"
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Şifreniz başarıyla güncellendi. Yeni şifrenizle giriş yapabilirsiniz.",
+  "data": null,
+  "timestamp": "2026-02-22T19:25:00.000000"
+}
+```
+
+**Response `data` Alanları:**
+
+| Alan | Tip | Açıklama |
+|------|-----|----------|
+| `data` | null | Bu işlemde veri dönmez |
 
 ---
 
@@ -790,6 +876,56 @@ Authorization: Bearer <Access_Token>
 
 ---
 
+### 📂 Categories (`/api/v1/categories`)
+
+---
+
+#### 20. `GET /api/v1/categories` — Tüm Kategorileri Listele
+
+Sistemde tanımlı tüm kategorileri (varsayılan + eklenenler) id ve isim bilgisiyle birlikte döner.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+```http
+GET /api/v1/categories
+Authorization: Bearer <Access_Token>
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Kategoriler listelendi",
+  "data": [
+    {
+      "id": 1,
+      "name": "Maaş",
+      "type": "INCOME",
+      "icon": "fa-wallet"
+    },
+    {
+      "id": 6,
+      "name": "Market",
+      "type": "EXPENSE",
+      "icon": "fa-cart-shopping"
+    }
+  ],
+  "timestamp": "2026-03-05T17:31:00.000000"
+}
+```
+
+**Response `data` Dizisi İçindeki Alanlar:**
+
+| Alan | Tip | Açıklama |
+|------|-----|----------|
+| `id` | integer (Long) | Kategorinin benzersiz ID'si |
+| `name` | string | Kategori adı (Maaş, Market vb.) |
+| `type` | string (enum) | `INCOME` (Gelir) veya `EXPENSE` (Gider) |
+| `icon` | string | Frontend ikon sınıfı |
+
+---
+
 ### 🔔 Notifications (`/api/v1/notifications`)
 
 ---
@@ -968,18 +1104,21 @@ GET /api/v1/infra-test/error-test
 | 3 | `POST` | `/api/v1/auth/refresh-token` | Token yenile | ❌ |
 | 4 | `POST` | `/api/v1/auth/logout` | Güvenli çıkış | ✅ |
 | 5 | `POST` | `/api/v1/auth/verify-email` | E-posta doğrulama | ❌ |
-| 6 | `POST` | `/api/v1/transactions` | Yeni işlem ekle | ✅ |
-| 7 | `GET` | `/api/v1/transactions` | İşlemleri listele/filtrele | ✅ |
-| 8 | `PUT` | `/api/v1/transactions/{id}` | İşlemi güncelle | ✅ |
-| 9 | `DELETE` | `/api/v1/transactions/{id}` | İşlemi sil | ✅ |
-| 10 | `POST` | `/api/v1/budgets` | Yeni bütçe oluştur | ✅ |
-| 11 | `GET` | `/api/v1/budgets` | Bütçeleri listele | ✅ |
-| 12 | `DELETE` | `/api/v1/budgets/{id}` | Bütçeyi sil | ✅ |
-| 13 | `GET` | `/api/v1/notifications` | Bildirimleri listele | ✅ |
-| 14 | `GET` | `/api/v1/notifications/unread-count` | Okunmamış bildirim sayısı | ✅ |
-| 15 | `PUT` | `/api/v1/notifications/{id}/read` | Bildirimi okundu işaretle | ✅ |
-| 16 | `GET` | `/api/v1/infra-test/ping` | Sistem sağlık kontrolü | ❌ |
-| 17 | `GET` | `/api/v1/infra-test/error-test` | Hata testi | ❌ |
+| 6 | `POST` | `/api/v1/auth/forgot-password` | Şifre sıfırlama bağlantısı gönder | ❌ |
+| 7 | `POST` | `/api/v1/auth/reset-password` | Şifreyi sıfırla | ❌ |
+| 8 | `POST` | `/api/v1/transactions` | Yeni işlem ekle | ✅ |
+| 9 | `GET` | `/api/v1/transactions` | İşlemleri listele/filtrele | ✅ |
+| 10 | `PUT` | `/api/v1/transactions/{id}` | İşlemi güncelle | ✅ |
+| 11 | `DELETE` | `/api/v1/transactions/{id}` | İşlemi sil | ✅ |
+| 12 | `POST` | `/api/v1/budgets` | Yeni bütçe oluştur | ✅ |
+| 13 | `GET` | `/api/v1/budgets` | Bütçeleri listele | ✅ |
+| 14 | `DELETE` | `/api/v1/budgets/{id}` | Bütçeyi sil | ✅ |
+| 15 | `GET` | `/api/v1/notifications` | Bildirimleri listele | ✅ |
+| 16 | `GET` | `/api/v1/notifications/unread-count` | Okunmamış bildirim sayısı | ✅ |
+| 17 | `PUT` | `/api/v1/notifications/{id}/read` | Bildirimi okundu işaretle | ✅ |
+| 18 | `GET` | `/api/v1/categories` | Tüm kategorileri listele | ✅ |
+| 19 | `GET` | `/api/v1/infra-test/ping` | Sistem sağlık kontrolü | ❌ |
+| 20 | `GET` | `/api/v1/infra-test/error-test` | Hata testi | ❌ |
 
 ---
 
