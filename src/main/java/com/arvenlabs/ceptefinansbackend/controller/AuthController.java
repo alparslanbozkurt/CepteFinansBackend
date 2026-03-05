@@ -1,18 +1,15 @@
 package com.arvenlabs.ceptefinansbackend.controller;
 
-import com.arvenlabs.ceptefinansbackend.dto.request.LoginRequest;
-import com.arvenlabs.ceptefinansbackend.dto.request.RefreshTokenRequest;
-import com.arvenlabs.ceptefinansbackend.dto.request.RegisterRequest;
-import com.arvenlabs.ceptefinansbackend.dto.request.VerifyEmailRequest;
+import com.arvenlabs.ceptefinansbackend.dto.request.*;
 import com.arvenlabs.ceptefinansbackend.dto.response.ApiResponse;
 import com.arvenlabs.ceptefinansbackend.dto.response.AuthResponse;
 import com.arvenlabs.ceptefinansbackend.service.AuthService;
+import com.arvenlabs.ceptefinansbackend.service.PasswordResetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -20,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(@RequestBody RegisterRequest request) {
@@ -47,5 +45,22 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> verifyEmail(@RequestBody VerifyEmailRequest request) {
         AuthResponse response = authService.verifyEmail(request);
         return ResponseEntity.ok(ApiResponse.success(response, response.getMessage()));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestParam String email) {
+        passwordResetService.processForgotPassword(email);
+        return ResponseEntity.ok(ApiResponse.success(null, "Eğer e-posta adresiniz sistemimizde kayıtlıysa, şifre sıfırlama bağlantısı gönderilmiştir."));
+    }
+
+    // REVİZE EDİLDİ: ApiResponse yapısına geçirildi
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+            return ResponseEntity.ok(ApiResponse.success(null, "Şifreniz başarıyla güncellendi. Yeni şifrenizle giriş yapabilirsiniz."));
+        } catch (RuntimeException e) {
+            throw e; // Veya direkt fırlat, Spring kendisi halletsin!
+        }
     }
 }
