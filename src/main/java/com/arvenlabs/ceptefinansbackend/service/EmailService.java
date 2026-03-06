@@ -6,8 +6,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,7 +19,6 @@ import java.util.Map;
 @Slf4j
 public class EmailService {
 
-    // JavaMailSender yerine REST API kullanıyoruz
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${spring.mail.username}")
@@ -25,12 +27,85 @@ public class EmailService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    // Zoho API ayarları (application.properties'e eklenecek)
-    @Value("${zoho.account.id:123456789}")
+    // Zoho API ayarları
+    @Value("${zoho.account.id:}")
     private String accountId;
 
-    @Value("${zoho.api.access-token:DUMMY_TOKEN}")
-    private String zohoAccessToken;
+    @Value("${zoho.client.id:}")
+    private String clientId;
+
+    @Value("${zoho.client.secret:}")
+    private String clientSecret;
+
+    @Value("${zoho.refresh.token:}")
+    private String refreshToken;
+
+    private String validAccessToken = null;
+    private long tokenExpiryTime = 0;
+
+    /**
+     * Thread-safe access token retrieval.
+     * Mevcut token'ın süresinin dolup dolmadığını kontrol eder, dolmuşsa yeni bir
+     * access token alır.
+     */
+    private synchronized String getValidAccessToken() {
+        // Süresinin dolmasına 60 saniye kalmışsa bile yeniliyoruz ki garanti olsun
+        if (validAccessToken == null || Instant.now().getEpochSecond() >= (tokenExpiryTime - 60)) {
+            refreshAccessToken();
+        }
+        return validAccessToken;
+    }
+
+    private void refreshAccessToken() {
+        log.info("🔄 Zoho OAuth2 Access Token süresi doldu veya mevcut değil. Yeni token alınıyor...");
+        try {
+            String url = "https://accounts.zoho.eu/oauth/v2/token";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("refresh_token", refreshToken);
+            body.add("client_id", clientId);
+            body.add("client_secret", clientSecret);
+            body.add("grant_type", "refresh_token");
+
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, requestEntity, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> bodyMap = response.getBody();
+
+                Object accessTokenObj = bodyMap.get("access_token");
+                if (accessTokenObj != null) {
+                    validAccessToken = String.valueOf(accessTokenObj);
+                } else {
+                    log.error("❌ Zoho API 'access_token' dönmedi! Dönen tam yanıt: {}", bodyMap);
+                    return;
+                }
+
+                int expiresIn = 3600; // Default 1 hour fallback
+                Object expiresInObj = bodyMap.get("expires_in");
+                if (expiresInObj instanceof Integer) {
+                    expiresIn = (Integer) expiresInObj;
+                } else if (expiresInObj instanceof String) {
+                    try {
+                        expiresIn = Integer.parseInt((String) expiresInObj);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+
+                tokenExpiryTime = Instant.now().getEpochSecond() + expiresIn;
+                log.info("✅ Yeni Zoho Access Token başarıyla alındı. Geçerlilik süresi: {} saniye", expiresIn);
+            } else {
+                log.error("❌ Zoho Access Token alınırken hata oluştu. Status Code: {}, Response: {}",
+                        response.getStatusCode(), response.getBody());
+            }
+        } catch (Exception e) {
+            log.error("❌ Zoho Access Token refresh işleminde istisna: {}", e.getMessage());
+        }
+    }
 
     @Async
     public void sendVerificationEmail(String toEmail, String code) {
@@ -71,13 +146,19 @@ public class EmailService {
     }
 
     private void sendEmailViaZohoApi(String toEmail, String subject, String content) {
+        String token = getValidAccessToken();
+        if (token == null) {
+            log.error("❌ Geçerli bir Access Token bulunamadığı için e-posta gönderilemedi!");
+            return;
+        }
+
         try {
             // Zoho API URL
             String url = "https://mail.zoho.eu/api/accounts/" + accountId + "/messages";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Zoho-oauthtoken " + zohoAccessToken);
+            headers.set("Authorization", "Zoho-oauthtoken " + token);
 
             Map<String, Object> body = new HashMap<>();
             body.put("fromAddress", fromEmail);
@@ -91,8 +172,7 @@ public class EmailService {
                     url,
                     HttpMethod.POST,
                     requestEntity,
-                    String.class
-            );
+                    String.class);
 
             log.info("✅ Zoho API ile e-posta başarıyla uçuruldu: {}", toEmail);
 
