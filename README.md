@@ -11,6 +11,7 @@ Cepte Finans, kullanıcıların gelirlerini, giderlerini ve bütçelerini güven
 - **Güvenlik:** Spring Security, JWT (JSON Web Tokens), BCrypt Şifreleme
 - **Bağımlılık Yönetimi:** Maven
 - **Yardımcı Araçlar:** Lombok, JJWT
+- **Yapay Zeka:** Google Gemini 2.5 Flash API (Vision)
 
 ---
 
@@ -35,6 +36,7 @@ Uygulama, "Domain-Driven Design" (Etki Alanı Odaklı Tasarım) prensiplerine ya
 - **Akıllı Validasyonlar:** Bir "Gelir" kategorisine (Örn: Maaş) "Gider" işlemi girilmesinin backend seviyesinde engellenmesi.
 - **Filtreleme:** İki tarih (startDate, endDate) aralığına göre harcama geçmişini filtreleme.
 - **Kaynak Takibi:** İşlemlerin kaynağını takip etme (`MANUAL`, `SMS`, `OCR`).
+- **AI OCR (Fiş Okuma) [YENİ]:** Google Gemini 2.5 Flash ile fiş fotoğraflarını analiz ederek tutar, tarih, kurum ve kategori bilgilerini otomatik çıkarma.
 
 ### 3. Bütçe Yönetimi (Budget Domain)
 - **Dinamik Bütçe Periyotları:** Aylık, Haftalık ve Yıllık bütçe hedefleri belirleyebilme.
@@ -718,6 +720,51 @@ Authorization: Bearer <Access_Token>
   "timestamp": "2026-02-22T19:05:00.000000"
 }
 ```
+
+---
+
+#### 10. `POST /api/v1/transactions/scan-receipt` — Fiş Tara (AI OCR)
+
+Google Gemini 2.5 Flash kullanarak gönderilen fiş fotoğrafını analiz eder ve işlem bilgilerini döner. Bu endpoint sadece analiz yapar, veritabanına kayıt **eklemez**. Gelen veriler kullanıcı onayıyla `/api/v1/transactions` üzerinden kaydedilmelidir.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body (Multipart Form-Data):**
+
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `file` | File (Image) | Evet | Fişin fotoğrafı (Max 20MB) |
+
+```http
+POST /api/v1/transactions/scan-receipt
+Authorization: Bearer <Access_Token>
+Content-Type: multipart/form-data
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Fiş başarıyla okundu",
+  "data": {
+    "amount": 450.75,
+    "transactionDate": "2024-03-08",
+    "description": "MİGROS TÜRK T.A.Ş.",
+    "suggestedCategory": "MARKET"
+  },
+  "timestamp": "2026-03-08T15:30:00.000000"
+}
+```
+
+**Response `data` Alanları:**
+
+| Alan | Tip | Açıklama |
+|------|-----|----------|
+| `amount` | decimal | Okunan toplam tutar |
+| `transactionDate` | string (YYYY-MM-DD) | Okunan fiş tarihi |
+| `description` | string | Fişi kesen kurum/market adı |
+| `suggestedCategory` | string | YZ tarafından önerilen kategori |
 
 ---
 

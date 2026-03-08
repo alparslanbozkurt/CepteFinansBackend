@@ -2,12 +2,16 @@ package com.arvenlabs.ceptefinansbackend.controller;
 
 import com.arvenlabs.ceptefinansbackend.dto.request.TransactionRequest;
 import com.arvenlabs.ceptefinansbackend.dto.response.ApiResponse;
+import com.arvenlabs.ceptefinansbackend.dto.response.OcrResponse;
 import com.arvenlabs.ceptefinansbackend.dto.response.TransactionResponse;
+import com.arvenlabs.ceptefinansbackend.service.OcrService;
 import com.arvenlabs.ceptefinansbackend.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +23,7 @@ import java.util.UUID;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final OcrService ocrService;
 
     // 1. Ekleme (POST) - ZATEN VARDI
     @PostMapping
@@ -57,5 +62,14 @@ public class TransactionController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         transactionService.deleteTransaction(id);
         return ResponseEntity.ok(ApiResponse.success(null, "İşlem silindi"));
+    }
+
+    @PostMapping(value = "/scan-receipt", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<OcrResponse>> scanReceipt(@RequestParam("file") MultipartFile file) {
+
+        // OcrService çalışıp yapay zekadan cevabı koparıp getirecek
+        OcrResponse response = ocrService.scanReceipt(file);
+
+        return ResponseEntity.ok(ApiResponse.success(response, "Fiş başarıyla okundu"));
     }
 }
