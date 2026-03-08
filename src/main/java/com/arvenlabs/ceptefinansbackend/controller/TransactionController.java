@@ -1,10 +1,13 @@
 package com.arvenlabs.ceptefinansbackend.controller;
 
+import com.arvenlabs.ceptefinansbackend.dto.request.SmsAnalysisRequest;
 import com.arvenlabs.ceptefinansbackend.dto.request.TransactionRequest;
 import com.arvenlabs.ceptefinansbackend.dto.response.ApiResponse;
 import com.arvenlabs.ceptefinansbackend.dto.response.OcrResponse;
+import com.arvenlabs.ceptefinansbackend.dto.response.SmsAnalysisResponse;
 import com.arvenlabs.ceptefinansbackend.dto.response.TransactionResponse;
 import com.arvenlabs.ceptefinansbackend.service.OcrService;
+import com.arvenlabs.ceptefinansbackend.service.SmsParserService;
 import com.arvenlabs.ceptefinansbackend.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +27,7 @@ public class TransactionController {
 
     private final TransactionService transactionService;
     private final OcrService ocrService;
+    private final SmsParserService smsParserService;
 
     // 1. Ekleme (POST) - ZATEN VARDI
     @PostMapping
@@ -71,5 +75,11 @@ public class TransactionController {
         OcrResponse response = ocrService.scanReceipt(file);
 
         return ResponseEntity.ok(ApiResponse.success(response, "Fiş başarıyla okundu"));
+    }
+
+    @PostMapping("/analyze-sms")
+    public ResponseEntity<ApiResponse<SmsAnalysisResponse>> analyzeSms(@RequestBody SmsAnalysisRequest request) {
+        SmsAnalysisResponse response = smsParserService.parseSms(request);
+        return ResponseEntity.ok(ApiResponse.success(response, "SMS başarıyla analiz edildi"));
     }
 }

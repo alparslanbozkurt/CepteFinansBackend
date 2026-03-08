@@ -37,6 +37,7 @@ Uygulama, "Domain-Driven Design" (Etki Alanı Odaklı Tasarım) prensiplerine ya
 - **Filtreleme:** İki tarih (startDate, endDate) aralığına göre harcama geçmişini filtreleme.
 - **Kaynak Takibi:** İşlemlerin kaynağını takip etme (`MANUAL`, `SMS`, `OCR`).
 - **AI OCR (Fiş Okuma) [YENİ]:** Google Gemini 2.5 Flash ile fiş fotoğraflarını analiz ederek tutar, tarih, kurum ve kategori bilgilerini otomatik çıkarma.
+- **AI SMS Analizi [YENİ]:** Bankalardan gelen harcama/gelir SMS'lerini yapay zeka ile analiz ederek otomatik işlem verisi oluşturma.
 
 ### 3. Bütçe Yönetimi (Budget Domain)
 - **Dinamik Bütçe Periyotları:** Aylık, Haftalık ve Yıllık bütçe hedefleri belirleyebilme.
@@ -765,6 +766,61 @@ Content-Type: multipart/form-data
 | `transactionDate` | string (YYYY-MM-DD) | Okunan fiş tarihi |
 | `description` | string | Fişi kesen kurum/market adı |
 | `suggestedCategory` | string | YZ tarafından önerilen kategori |
+
+---
+
+#### 11. `POST /api/v1/transactions/analyze-sms` — SMS Analiz Et (AI SMS)
+
+Bankalardan veya diğer kurumlardan gelen SMS metinlerini analiz ederek finansal işlem detaylarını çıkarır.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body:**
+
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `sender` | string | Evet | SMS'i gönderen başlık (Örn: ZIRAAT, ENPARA) |
+| `smsText` | string | Evet | SMS'in tam metni |
+
+```http
+POST /api/v1/transactions/analyze-sms
+Authorization: Bearer <Access_Token>
+Content-Type: application/json
+```
+
+```json
+{
+  "sender": "BANKA",
+  "smsText": "Sayin Musterimiz, 08/03/2026 tarihinde kartinizla 250.00 TL tutarinda MARKET harcamasi yapilmistir."
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "SMS başarıyla analiz edildi",
+  "data": {
+    "amount": 250.00,
+    "transactionDate": "2026-03-08",
+    "description": "MARKET",
+    "suggestedCategory": "MARKET",
+    "type": "EXPENSE"
+  },
+  "timestamp": "2026-03-08T16:10:00.000000"
+}
+```
+
+**Response `data` Alanları:**
+
+| Alan | Tip | Açıklama |
+|------|-----|----------|
+| `amount` | decimal | Analiz edilen tutar |
+| `transactionDate` | string (YYYY-MM-DD) | Analiz edilen tarih |
+| `description` | string | Analiz edilen kurum/yer adı |
+| `suggestedCategory` | string | Önerilen kategori |
+| `type` | string | İşlem tipi (`INCOME` veya `EXPENSE`) |
 
 ---
 
