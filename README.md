@@ -11,6 +11,7 @@ Cepte Finans, kullanıcıların gelirlerini, giderlerini ve bütçelerini güven
 - **Güvenlik:** Spring Security, JWT (JSON Web Tokens), BCrypt Şifreleme
 - **Bağımlılık Yönetimi:** Maven
 - **Yardımcı Araçlar:** Lombok, JJWT
+- **Yapay Zeka:** Google Gemini 2.5 Flash API (Vision)
 
 ---
 
@@ -35,6 +36,8 @@ Uygulama, "Domain-Driven Design" (Etki Alanı Odaklı Tasarım) prensiplerine ya
 - **Akıllı Validasyonlar:** Bir "Gelir" kategorisine (Örn: Maaş) "Gider" işlemi girilmesinin backend seviyesinde engellenmesi.
 - **Filtreleme:** İki tarih (startDate, endDate) aralığına göre harcama geçmişini filtreleme.
 - **Kaynak Takibi:** İşlemlerin kaynağını takip etme (`MANUAL`, `SMS`, `OCR`).
+- **AI OCR (Fiş Okuma) [YENİ]:** Google Gemini 2.5 Flash ile fiş fotoğraflarını analiz ederek tutar, tarih, kurum ve kategori bilgilerini otomatik çıkarma.
+- **AI SMS Analizi [YENİ]:** Bankalardan gelen harcama/gelir SMS'lerini yapay zeka ile analiz ederek otomatik işlem verisi oluşturma.
 
 ### 3. Bütçe Yönetimi (Budget Domain)
 - **Dinamik Bütçe Periyotları:** Aylık, Haftalık ve Yıllık bütçe hedefleri belirleyebilme.
@@ -721,11 +724,149 @@ Authorization: Bearer <Access_Token>
 
 ---
 
+#### 10. `GET /api/v1/transactions/{id}` — Tekil İşlem Getir
+
+Belirtilen ID'ye sahip işlemin detaylarını döner.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Path Parameters:**
+
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `id` | UUID | Getirilecek işlemin ID'si |
+
+```http
+GET /api/v1/transactions/eb85b6cc-7272-4c11-ba19-6f6829934c2c
+Authorization: Bearer <Access_Token>
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "İşlem detayları",
+  "data": {
+    "id": "eb85b6cc-7272-4c11-ba19-6f6829934c2c",
+    "categoryName": "Market",
+    "categoryIcon": "default-icon",
+    "type": "EXPENSE",
+    "amount": 2100.50,
+    "description": "Haftalık market alışverişi",
+    "transactionDate": "2026-02-09"
+  },
+  "timestamp": "2026-03-08T16:20:00.000000"
+}
+```
+
+---
+
+#### 11. `POST /api/v1/transactions/scan-receipt` — Fiş Tara (AI OCR)
+
+Google Gemini 2.5 Flash kullanarak gönderilen fiş fotoğrafını analiz eder ve işlem bilgilerini döner. Bu endpoint sadece analiz yapar, veritabanına kayıt **eklemez**. Gelen veriler kullanıcı onayıyla `/api/v1/transactions` üzerinden kaydedilmelidir.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body (Multipart Form-Data):**
+
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `file` | File (Image) | Evet | Fişin fotoğrafı (Max 20MB) |
+
+```http
+POST /api/v1/transactions/scan-receipt
+Authorization: Bearer <Access_Token>
+Content-Type: multipart/form-data
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Fiş başarıyla okundu",
+  "data": {
+    "amount": 450.75,
+    "transactionDate": "2024-03-08",
+    "description": "MİGROS TÜRK T.A.Ş.",
+    "suggestedCategory": "MARKET"
+  },
+  "timestamp": "2026-03-08T15:30:00.000000"
+}
+```
+
+**Response `data` Alanları:**
+
+| Alan | Tip | Açıklama |
+|------|-----|----------|
+| `amount` | decimal | Okunan toplam tutar |
+| `transactionDate` | string (YYYY-MM-DD) | Okunan fiş tarihi |
+| `description` | string | Fişi kesen kurum/market adı |
+| `suggestedCategory` | string | YZ tarafından önerilen kategori |
+
+---
+
+#### 12. `POST /api/v1/transactions/analyze-sms` — SMS Analiz Et (AI SMS)
+
+Bankalardan veya diğer kurumlardan gelen SMS metinlerini analiz ederek finansal işlem detaylarını çıkarır.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body:**
+
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `sender` | string | Evet | SMS'i gönderen başlık (Örn: ZIRAAT, ENPARA) |
+| `smsText` | string | Evet | SMS'in tam metni |
+
+```http
+POST /api/v1/transactions/analyze-sms
+Authorization: Bearer <Access_Token>
+Content-Type: application/json
+```
+
+```json
+{
+  "sender": "BANKA",
+  "smsText": "Sayin Musterimiz, 08/03/2026 tarihinde kartinizla 250.00 TL tutarinda MARKET harcamasi yapilmistir."
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "SMS başarıyla analiz edildi",
+  "data": {
+    "amount": 250.00,
+    "transactionDate": "2026-03-08",
+    "description": "MARKET",
+    "suggestedCategory": "MARKET",
+    "type": "EXPENSE"
+  },
+  "timestamp": "2026-03-08T16:10:00.000000"
+}
+```
+
+**Response `data` Alanları:**
+
+| Alan | Tip | Açıklama |
+|------|-----|----------|
+| `amount` | decimal | Analiz edilen tutar |
+| `transactionDate` | string (YYYY-MM-DD) | Analiz edilen tarih |
+| `description` | string | Analiz edilen kurum/yer adı |
+| `suggestedCategory` | string | Önerilen kategori |
+| `type` | string | İşlem tipi (`INCOME` veya `EXPENSE`) |
+
+---
+
 ### 📈 Budgets (`/api/v1/budgets`)
 
 ---
 
-#### 10. `POST /api/v1/budgets` — Yeni Bütçe Oluştur
+#### 13. `POST /api/v1/budgets` — Yeni Bütçe Oluştur
 
 Belirli bir kategori için bütçe hedefi tanımlar.
 
@@ -788,7 +929,7 @@ Content-Type: application/json
 
 ---
 
-#### 11. `GET /api/v1/budgets` — Bütçeleri Listele
+#### 14. `GET /api/v1/budgets` — Bütçeleri Listele
 
 Tüm bütçeleri, harcanan tutarları ve doluluk yüzdelerini döner.
 
@@ -846,7 +987,7 @@ Authorization: Bearer <Access_Token>
 
 ---
 
-#### 12. `DELETE /api/v1/budgets/{id}` — Bütçeyi Sil
+#### 15. `DELETE /api/v1/budgets/{id}` — Bütçeyi Sil
 
 Belirtilen ID'ye sahip bütçeyi siler.
 
@@ -876,11 +1017,106 @@ Authorization: Bearer <Access_Token>
 
 ---
 
+#### 16. `GET /api/v1/budgets/{id}` — Tekil Bütçe Getir
+
+Belirtilen ID'ye sahip bütçenin detaylarını döner.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Path Parameters:**
+
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `id` | UUID | Getirilecek bütçenin ID'si |
+
+```http
+GET /api/v1/budgets/da022e27-6cf7-454c-a052-53964e1c7619
+Authorization: Bearer <Access_Token>
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Bütçe detayları",
+  "data": {
+    "id": "da022e27-6cf7-454c-a052-53964e1c7619",
+    "categoryName": "Market",
+    "limitAmount": 2000,
+    "spentAmount": 450.75,
+    "percentage": 22.54,
+    "period": "MONTHLY",
+    "startDate": "2026-03-01",
+    "endDate": "2026-03-31"
+  },
+  "timestamp": "2026-03-08T16:25:00.000000"
+}
+```
+
+---
+
+#### 17. `PUT /api/v1/budgets/{id}` — Bütçeyi Güncelle
+
+Mevcut bir bütçeyi günceller.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Path Parameters:**
+
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `id` | UUID | Güncellenecek bütçenin ID'si |
+
+**Request Body:**
+
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `categoryId` | integer (Long) | Evet | Kategori ID'si |
+| `amount` | decimal (BigDecimal) | Evet | Yeni bütçe limiti |
+| `period` | string (enum) | Hayır | `WEEKLY`, `MONTHLY`, `YEARLY` |
+
+```http
+PUT /api/v1/budgets/da022e27-6cf7-454c-a052-53964e1c7619
+Authorization: Bearer <Access_Token>
+Content-Type: application/json
+```
+
+```json
+{
+  "categoryId": 6,
+  "amount": 2500,
+  "period": "MONTHLY"
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Bütçe güncellendi",
+  "data": {
+    "id": "da022e27-6cf7-454c-a052-53964e1c7619",
+    "categoryName": "Market",
+    "limitAmount": 2500,
+    "spentAmount": 450.75,
+    "percentage": 18.03,
+    "period": "MONTHLY",
+    "startDate": "2026-03-01",
+    "endDate": "2026-03-31"
+  },
+  "timestamp": "2026-03-08T16:26:00.000000"
+}
+```
+
+---
+
 ### 📂 Categories (`/api/v1/categories`)
 
 ---
 
-#### 20. `GET /api/v1/categories` — Tüm Kategorileri Listele
+#### 23. `GET /api/v1/categories` — Tüm Kategorileri Listele
 
 Sistemde tanımlı tüm kategorileri (varsayılan + eklenenler) id ve isim bilgisiyle birlikte döner.
 
@@ -930,7 +1166,7 @@ Authorization: Bearer <Access_Token>
 
 ---
 
-#### 13. `GET /api/v1/notifications` — Bildirimleri Listele
+#### 18. `GET /api/v1/notifications` — Bildirimleri Listele
 
 Giriş yapan kullanıcıya ait tüm bildirimleri listeler.
 
@@ -979,7 +1215,7 @@ Authorization: Bearer <Access_Token>
 
 ---
 
-#### 14. `GET /api/v1/notifications/unread-count` — Okunmamış Bildirim Sayısı
+#### 19. `GET /api/v1/notifications/unread-count` — Okunmamış Bildirim Sayısı
 
 Giriş yapan kullanıcının okunmamış bildirim sayısını döner.
 
@@ -1009,7 +1245,7 @@ Authorization: Bearer <Access_Token>
 
 ---
 
-#### 15. `PUT /api/v1/notifications/{id}/read` — Bildirimi Okundu Olarak İşaretle
+#### 20. `PUT /api/v1/notifications/{id}/read` — Bildirimi Okundu Olarak İşaretle
 
 Belirtilen ID'ye sahip bildirimi okundu olarak işaretler.
 
@@ -1043,7 +1279,7 @@ Authorization: Bearer <Access_Token>
 
 ---
 
-#### 16. `GET /api/v1/infra-test/ping` — Sistem Sağlık Kontrolü
+#### 21. `GET /api/v1/infra-test/ping` — Sistem Sağlık Kontrolü
 
 Sistemin ayakta olup olmadığını kontrol eder.
 
@@ -1072,7 +1308,7 @@ GET /api/v1/infra-test/ping
 
 ---
 
-#### 17. `GET /api/v1/infra-test/error-test` — Hata Testi
+#### 22. `GET /api/v1/infra-test/error-test` — Hata Testi
 
 GlobalExceptionHandler'ın doğru çalıştığını test etmek için kasıtlı hata fırlatır.
 
@@ -1110,15 +1346,20 @@ GET /api/v1/infra-test/error-test
 | 9 | `GET` | `/api/v1/transactions` | İşlemleri listele/filtrele | ✅ |
 | 10 | `PUT` | `/api/v1/transactions/{id}` | İşlemi güncelle | ✅ |
 | 11 | `DELETE` | `/api/v1/transactions/{id}` | İşlemi sil | ✅ |
-| 12 | `POST` | `/api/v1/budgets` | Yeni bütçe oluştur | ✅ |
-| 13 | `GET` | `/api/v1/budgets` | Bütçeleri listele | ✅ |
-| 14 | `DELETE` | `/api/v1/budgets/{id}` | Bütçeyi sil | ✅ |
-| 15 | `GET` | `/api/v1/notifications` | Bildirimleri listele | ✅ |
-| 16 | `GET` | `/api/v1/notifications/unread-count` | Okunmamış bildirim sayısı | ✅ |
-| 17 | `PUT` | `/api/v1/notifications/{id}/read` | Bildirimi okundu işaretle | ✅ |
-| 18 | `GET` | `/api/v1/categories` | Tüm kategorileri listele | ✅ |
-| 19 | `GET` | `/api/v1/infra-test/ping` | Sistem sağlık kontrolü | ❌ |
-| 20 | `GET` | `/api/v1/infra-test/error-test` | Hata testi | ❌ |
+| 12 | `GET` | `/api/v1/transactions/{id}` | Tekil işlem getir | ✅ |
+| 13 | `POST` | `/api/v1/transactions/scan-receipt` | Fiş tara (OCR) | ✅ |
+| 14 | `POST` | `/api/v1/transactions/analyze-sms` | SMS analiz et | ✅ |
+| 15 | `POST` | `/api/v1/budgets` | Yeni bütçe oluştur | ✅ |
+| 16 | `GET` | `/api/v1/budgets` | Bütçeleri listele | ✅ |
+| 17 | `DELETE` | `/api/v1/budgets/{id}` | Bütçeyi sil | ✅ |
+| 18 | `GET` | `/api/v1/budgets/{id}` | Tekil bütçe getir | ✅ |
+| 19 | `PUT` | `/api/v1/budgets/{id}` | Bütçeyi güncelle | ✅ |
+| 20 | `GET` | `/api/v1/notifications` | Bildirimleri listele | ✅ |
+| 21 | `GET` | `/api/v1/notifications/unread-count` | Okunmamış bildirim sayısı | ✅ |
+| 22 | `PUT` | `/api/v1/notifications/{id}/read` | Bildirimi okundu işaretle | ✅ |
+| 23 | `GET` | `/api/v1/categories` | Tüm kategorileri listele | ✅ |
+| 24 | `GET` | `/api/v1/infra-test/ping` | Sistem sağlık kontrolü | ❌ |
+| 25 | `GET` | `/api/v1/infra-test/error-test` | Hata testi | ❌ |
 
 ---
 

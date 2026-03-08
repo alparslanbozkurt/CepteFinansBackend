@@ -82,7 +82,7 @@ public class TransactionService {
         User user = getCurrentUser();
         // Repository'deki özel sorgu metodunu çağırıyoruz
         return transactionRepository.findAllByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(
-                        user.getId(), startDate, endDate)
+                user.getId(), startDate, endDate)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -141,6 +141,18 @@ public class TransactionService {
         transactionRepository.delete(transaction);
     }
 
+    // --- 6. TEKİL GETİR (READ ONE) ---
+    public TransactionResponse getTransactionById(UUID id) {
+        User user = getCurrentUser();
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("İşlem bulunamadı"));
+
+        if (!transaction.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Bu işleme erişim yetkiniz yok!");
+        }
+        return mapToResponse(transaction);
+    }
+
     // --- YARDIMCI METODLAR ---
 
     // Entity -> DTO Dönüşümü
@@ -158,7 +170,8 @@ public class TransactionService {
 
     // Şu an login olmuş kullanıcıyı getiren metod
     private User getCurrentUser() {
-        String email = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+        String email = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                .getUsername();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
@@ -175,11 +188,13 @@ public class TransactionService {
                     Double totalSpent = transactionRepository.findTotalExpenseByCategoryAndDate(
                             user.getId(), category.getId(), budget.getStartDate(), budget.getEndDate());
 
-                    if (totalSpent == null) totalSpent = 0.0;
+                    if (totalSpent == null)
+                        totalSpent = 0.0;
 
                     double percentage = (totalSpent / budget.getAmount().doubleValue()) * 100;
 
-                    // 3. %100 Kontrolü (HATA BURADA DÜZELTİLDİ: createAndSendNotification kullanıldı)
+                    // 3. %100 Kontrolü (HATA BURADA DÜZELTİLDİ: createAndSendNotification
+                    // kullanıldı)
                     if (percentage >= 100.0 && !budget.isHundredPercentNotified()) {
                         notificationService.createAndSendNotification(user,
                                 "🚨 Bütçe Aşıldı!",
@@ -189,7 +204,8 @@ public class TransactionService {
                         budget.setSeventyPercentNotified(true);
                         budgetRepository.save(budget);
                     }
-                    // 4. %70 Kontrolü (HATA BURADA DÜZELTİLDİ: createAndSendNotification kullanıldı)
+                    // 4. %70 Kontrolü (HATA BURADA DÜZELTİLDİ: createAndSendNotification
+                    // kullanıldı)
                     else if (percentage >= 70.0 && !budget.isSeventyPercentNotified()) {
                         notificationService.createAndSendNotification(user,
                                 "⚠️ Bütçe Uyarısı",
