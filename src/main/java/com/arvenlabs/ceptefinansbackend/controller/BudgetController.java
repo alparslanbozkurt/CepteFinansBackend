@@ -32,4 +32,15 @@ public class BudgetController {
         budgetService.deleteBudget(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Bütçe silindi"));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<BudgetResponse>> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(budgetService.getBudgetById(id), "Bütçe detayları"));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<BudgetResponse>> update(@PathVariable UUID id,
+            @RequestBody BudgetRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(budgetService.updateBudget(id, request), "Bütçe güncellendi"));
+    }
 }

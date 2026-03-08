@@ -40,13 +40,11 @@ public class TransactionController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<TransactionResponse>>> getAll(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
-    ) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         // Eğer tarih verilmişse filtrele, verilmemişse hepsini getir
         if (startDate != null && endDate != null) {
             return ResponseEntity.ok(ApiResponse.success(
-                    transactionService.getTransactionsByDateRange(startDate, endDate), "Filtrelenmiş işlemler"
-            ));
+                    transactionService.getTransactionsByDateRange(startDate, endDate), "Filtrelenmiş işlemler"));
         }
 
         return ResponseEntity.ok(ApiResponse.success(transactionService.getAllTransactions(), "Tüm işlemler"));
@@ -56,9 +54,9 @@ public class TransactionController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<TransactionResponse>> update(
             @PathVariable UUID id,
-            @RequestBody TransactionRequest request
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(transactionService.updateTransaction(id, request), "İşlem güncellendi"));
+            @RequestBody TransactionRequest request) {
+        return ResponseEntity
+                .ok(ApiResponse.success(transactionService.updateTransaction(id, request), "İşlem güncellendi"));
     }
 
     // 4. Silme (DELETE) - ZATEN VARDI
@@ -66,6 +64,12 @@ public class TransactionController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         transactionService.deleteTransaction(id);
         return ResponseEntity.ok(ApiResponse.success(null, "İşlem silindi"));
+    }
+
+    // 5. Tekil Getir (GET) - YENİ
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<TransactionResponse>> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(transactionService.getTransactionById(id), "İşlem detayları"));
     }
 
     @PostMapping(value = "/scan-receipt", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -89,14 +89,50 @@ public class BudgetService {
         budgetRepository.delete(budget);
     }
 
+    // --- 4. BÜTÇE GÜNCELLE ---
+    @Transactional
+    public BudgetResponse updateBudget(UUID id, BudgetRequest request) {
+        User user = getCurrentUser();
+        Budget budget = budgetRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bütçe bulunamadı"));
+
+        if (!budget.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Bu bütçeyi düzenleme yetkiniz yok!");
+        }
+
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Kategori bulunamadı"));
+
+        budget.setCategory(category);
+        budget.setAmount(request.getAmount());
+        if (request.getPeriod() != null) {
+            budget.setPeriod(request.getPeriod());
+        }
+
+        Budget updated = budgetRepository.save(budget);
+        return mapToResponse(updated);
+    }
+
+    // --- 5. TEKİL BÜTÇE GETİR ---
+    public BudgetResponse getBudgetById(UUID id) {
+        User user = getCurrentUser();
+        Budget budget = budgetRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bütçe bulunamadı"));
+
+        if (!budget.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Bu bütçeye erişim yetkiniz yok!");
+        }
+        return mapToResponse(budget);
+    }
+
     // --- YARDIMCI METOD: Entity -> DTO (Hesaplamalar Burada!) ---
     private BudgetResponse mapToResponse(Budget budget) {
         // 1. Bu bütçenin kategorisinde ve tarih aralığında yapılan harcamaları bul
-        List<Transaction> transactions = transactionRepository.findAllByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(
-                budget.getUser().getId(),
-                budget.getStartDate(),
-                budget.getEndDate()
-        );
+        List<Transaction> transactions = transactionRepository
+                .findAllByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(
+                        budget.getUser().getId(),
+                        budget.getStartDate(),
+                        budget.getEndDate());
 
         // 2. Sadece o kategoriye ait olanları ve GİDER olanları topla
         BigDecimal spentAmount = transactions.stream()
@@ -118,7 +154,7 @@ public class BudgetService {
                 .categoryName(budget.getCategory().getName())
                 .limitAmount(budget.getAmount())
                 .spentAmount(spentAmount) // Hesaplanan harcama
-                .percentage(percentage)   // Hesaplanan yüzde
+                .percentage(percentage) // Hesaplanan yüzde
                 .period(budget.getPeriod())
                 .startDate(budget.getStartDate())
                 .endDate(budget.getEndDate())
@@ -126,7 +162,8 @@ public class BudgetService {
     }
 
     private User getCurrentUser() {
-        String email = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+        String email = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                .getUsername();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
