@@ -41,6 +41,19 @@ public class OcrService {
             String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
             String mimeType = file.getContentType();
 
+            //  DÜZELTME 1: Mobilden gelen hatalı veya belirsiz MIME tipini yakala ve düzelt
+            if (mimeType == null || mimeType.contains("*") || mimeType.equals("application/octet-stream")) {
+                String filename = file.getOriginalFilename();
+                if (filename != null && filename.toLowerCase().endsWith(".png")) {
+                    mimeType = "image/png";
+                } else if (filename != null && filename.toLowerCase().endsWith(".webp")) {
+                    mimeType = "image/webp";
+                } else {
+                    mimeType = "image/jpeg"; // Varsayılan olarak en güvenlisi
+                }
+                log.info("⚠️ Gelen geçersiz MIME tipi backend tarafından düzeltildi: {}", mimeType);
+            }
+
             // 2. Yapay Zekaya verilecek kesin Prompt
             String systemPrompt = "Sen uzman bir finans asistanısın ve fiş okuma (OCR) görevin var. " +
                     "Sana verilen fiş görüntüsünden aşağıdaki bilgileri çıkar ve SADECE JSON dön. " +
@@ -55,11 +68,12 @@ public class OcrService {
             textPart.put("text", systemPrompt);
 
             Map<String, Object> inlineData = new HashMap<>();
-            inlineData.put("mimeType", mimeType);
+            // 🚀 DÜZELTME 2: REST API standardı gereği key isimleri snake_case olmalı
+            inlineData.put("mime_type", mimeType);
             inlineData.put("data", base64Image);
 
             Map<String, Object> imagePart = new HashMap<>();
-            imagePart.put("inlineData", inlineData);
+            imagePart.put("inline_data", inlineData);
 
             Map<String, Object> contentPart = new HashMap<>();
             contentPart.put("parts", List.of(textPart, imagePart));
@@ -69,7 +83,7 @@ public class OcrService {
 
             // Gemini 2.5 özelliğidir: AI'ı kesinlikle JSON dönmeye zorlar!
             Map<String, Object> generationConfig = new HashMap<>();
-            generationConfig.put("responseMimeType", "application/json");
+            generationConfig.put("response_mime_type", "application/json");
             requestBody.put("generationConfig", generationConfig);
 
             // 4. API İsteğini Gönder (Gemini, API anahtarını URL'de bekler)
