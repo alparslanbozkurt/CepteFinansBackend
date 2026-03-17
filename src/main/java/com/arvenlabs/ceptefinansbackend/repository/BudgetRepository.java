@@ -12,6 +12,7 @@ import java.util.UUID;
 
 public interface BudgetRepository extends JpaRepository<Budget, UUID> {
 
+    void deleteAllByUserId(UUID userId);
     // Kullanıcının tüm bütçelerini getir
     List<Budget> findAllByUserId(UUID userId);
 

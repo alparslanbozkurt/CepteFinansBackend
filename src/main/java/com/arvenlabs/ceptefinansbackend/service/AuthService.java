@@ -37,6 +37,10 @@ public class AuthService {
     // --- 1. KAYIT OL (Token dönmez, Mail atar) ---
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        if (!request.isTermsAccepted()) {
+            throw new RuntimeException("Kayıt olabilmek için Kullanım Koşullarını onaylamanız gerekmektedir.");
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Bu e-posta adresi zaten kullanımda!");
         }
@@ -47,6 +51,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .is2faEnabled(false)
+                .isTermsAccepted(true)
                 .isEmailVerified(false)
                 .build();
 

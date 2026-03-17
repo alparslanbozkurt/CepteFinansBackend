@@ -10,6 +10,7 @@ import java.util.UUID;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     Optional<RefreshToken> findByToken(String token);
     // Bir kullanıcının tüm tokenlarını bul (Logout yaparken hepsini silmek gerekebilir)
+    void deleteAllByUserId(UUID userId);
     @Transactional
     // Silme işlemi için bu anotasyon şart!
     void deleteByUser(User user);

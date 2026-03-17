@@ -10,6 +10,8 @@ import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
 
+        void deleteAllByUserId(UUID userId);
+
         // Tarih aralığına göre getir (Filtreleme için)
         List<Transaction> findAllByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(
                         UUID userId, LocalDate startDate, LocalDate endDate);

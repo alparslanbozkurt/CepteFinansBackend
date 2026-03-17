@@ -101,4 +101,7 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
+    @Column(name = "is_terms_accepted", nullable = false)
+    private boolean isTermsAccepted = false;
 }
