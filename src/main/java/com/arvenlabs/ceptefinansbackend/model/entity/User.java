@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +53,15 @@ public class User implements UserDetails {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "age")
+    private Integer age;
+
+    @Column(name = "income")
+    private BigDecimal income;
+
+    @Column(name = "occupation")
+    private String occupation;
 
     /// USER METOTLARI
     @Override

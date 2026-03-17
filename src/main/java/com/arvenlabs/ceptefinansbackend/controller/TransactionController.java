@@ -1,11 +1,14 @@
 package com.arvenlabs.ceptefinansbackend.controller;
 
+import com.arvenlabs.ceptefinansbackend.dto.request.GmailAnalysisRequest;
 import com.arvenlabs.ceptefinansbackend.dto.request.SmsAnalysisRequest;
 import com.arvenlabs.ceptefinansbackend.dto.request.TransactionRequest;
 import com.arvenlabs.ceptefinansbackend.dto.response.ApiResponse;
 import com.arvenlabs.ceptefinansbackend.dto.response.OcrResponse;
 import com.arvenlabs.ceptefinansbackend.dto.response.SmsAnalysisResponse;
 import com.arvenlabs.ceptefinansbackend.dto.response.TransactionResponse;
+import com.arvenlabs.ceptefinansbackend.service.GmailParserService;
+import com.arvenlabs.ceptefinansbackend.service.GmailService;
 import com.arvenlabs.ceptefinansbackend.service.OcrService;
 import com.arvenlabs.ceptefinansbackend.service.SmsParserService;
 import com.arvenlabs.ceptefinansbackend.service.TransactionService;
@@ -28,6 +31,8 @@ public class TransactionController {
     private final TransactionService transactionService;
     private final OcrService ocrService;
     private final SmsParserService smsParserService;
+    private final GmailService gmailService;
+    private final GmailParserService gmailParserService;
 
     // 1. Ekleme (POST) - ZATEN VARDI
     @PostMapping
@@ -85,5 +90,13 @@ public class TransactionController {
     public ResponseEntity<ApiResponse<SmsAnalysisResponse>> analyzeSms(@RequestBody SmsAnalysisRequest request) {
         SmsAnalysisResponse response = smsParserService.parseSms(request);
         return ResponseEntity.ok(ApiResponse.success(response, "SMS başarıyla analiz edildi"));
+    }
+
+    @PostMapping("/analyze-gmail")
+    public ResponseEntity<ApiResponse<List<SmsAnalysisResponse>>> analyzeGmail(@RequestBody GmailAnalysisRequest request) {
+        int days = request.getDaysToScan() != null ? request.getDaysToScan() : 7;
+        List<String> emails = gmailService.fetchRecentInvoices(request.getAccessToken(), days);
+        List<SmsAnalysisResponse> responses = gmailParserService.parseEmails(emails);
+        return ResponseEntity.ok(ApiResponse.success(responses, "Gmail başarıyla analiz edildi ve " + responses.size() + " potansiyel işlem bulundu."));
     }
 }

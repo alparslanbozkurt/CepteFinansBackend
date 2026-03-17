@@ -30,6 +30,7 @@ public class TransactionService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final BudgetRepository budgetRepository;
+    private final com.arvenlabs.ceptefinansbackend.repository.ImpulseLockRepository impulseLockRepository;
 
     // --- 1. HARCAMA EKLE (CREATE) ---
     @Transactional
@@ -60,9 +61,10 @@ public class TransactionService {
 
         Transaction saved = transactionRepository.save(transaction);
 
-        // EĞER GİDER İSE BÜTÇE KONTROLÜ YAP
+        // EĞER GİDER İSE BÜTÇE KONTROLÜ YAP VE KİLİT KIR
         if (saved.getType().name().equals("EXPENSE")) {
             checkBudgetLimits(user, category, saved.getTransactionDate());
+            checkAndBreakImpulseLocks(user, category);
         }
 
         return mapToResponse(saved);
@@ -213,6 +215,21 @@ public class TransactionService {
 
                         budget.setSeventyPercentNotified(true);
                         budgetRepository.save(budget);
+                    }
+                });
+    }
+
+    // Dürtüsel Harcama Kasası Kırma Kontrolü
+    private void checkAndBreakImpulseLocks(User user, Category category) {
+        impulseLockRepository.findByUserIdAndCategoryIdAndStatus(
+                user.getId(), category.getId(), com.arvenlabs.ceptefinansbackend.model.enums.LockStatus.ACTIVE)
+                .ifPresent(lock -> {
+                    if (java.time.LocalDateTime.now().isBefore(lock.getUnlocksAt())) {
+                        lock.setStatus(com.arvenlabs.ceptefinansbackend.model.enums.LockStatus.BROKEN);
+                        impulseLockRepository.save(lock);
+                        notificationService.createAndSendNotification(user,
+                                "🚨 Kasa Kırıldı!",
+                                category.getName() + " kategorisinde 48 saat harcama yapmamaya yemin etmiştin, yeminini bozdun!");
                     }
                 });
     }
