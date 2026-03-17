@@ -89,6 +89,9 @@ public class User implements UserDetails {
         return true;
     }
 
+    @Column(name = "fcm_token")
+    private String fcmToken;
+
     @Override
     public boolean isCredentialsNonExpired() {
         return true;

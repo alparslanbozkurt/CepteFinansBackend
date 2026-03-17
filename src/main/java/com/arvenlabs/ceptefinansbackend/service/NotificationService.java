@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,10 +23,11 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final FCMService fcmService; // Firebase servisimizi enjekte ettik
 
     // 1. Backend'in içinden çağrılacak metod (TransactionService vb. kullanacak)
     public void createAndSendNotification(User user, String title, String message) {
-        // A) Veritabanına kaydet
+        // A) Veritabanına kaydet (Uygulama içi zil butonu için)
         Notification notification = Notification.builder()
                 .user(user)
                 .title(title)
@@ -36,7 +38,20 @@ public class NotificationService {
 
         log.info("🔔 Bildirim Kaydedildi -> Kime: {} | Mesaj: {}", user.getEmail(), message);
 
-        // B) TODO: İleride buraya Android/FCM (Firebase) Push Notification kodları gelecek.
+        // B) Firebase (FCM) Push Notification Gönderimi
+        // Asenkron çalıştırıyoruz ki harcama kaydetme süresini (API yanıtını) yavaşlatmasın
+        if (user.getFcmToken() != null && !user.getFcmToken().isEmpty()) {
+            CompletableFuture.runAsync(() -> {
+                fcmService.sendPushNotification(user.getFcmToken(), title, message);
+                log.info("📱 Firebase'e iletildi -> Cihaz: {}", user.getFcmToken());
+            }).exceptionally(ex -> {
+                log.error("❌ Firebase bildirimi gönderilemedi: {}", ex.getMessage());
+                return null;
+            });
+        } else {
+            log.warn("⚠️ Kullanıcının FCM Token'ı yok, anlık bildirim atılamadı.");
+        }
+
         // C) TODO: İleride Web tarafı için WebSocket (Canlı güncelleme) tetiklenecek.
     }
 

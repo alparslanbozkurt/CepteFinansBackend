@@ -56,6 +56,7 @@ Uygulama, "Domain-Driven Design" (Etki Alanı Odaklı Tasarım) prensiplerine ya
 - **AI Roast (Gemini):** Haftalık harcamaların Gemini AI tarafından sarkastik bir dille eleştirilmesi.
 - **Gmail Analizi:** Gmail üzerindeki e-faturaların otomatik taranması ve finansal verilere dönüştürülmesi.
 - **Hedef ve Alışkanlık Takibi:** Finansal birikim hedefleri ve 30 günlük harcamasız gün (streak) heatmap verisi.
+- **Push Bildirimleri (Firebase FCM) [YENİ]:** Kullanıcı cihazlarına mobil bildirim gönderimi, cihaz token yönetimi ve test bildirim altyapısı.
 
 ---
 
@@ -1474,6 +1475,43 @@ GET /api/v1/infra-test/error-test
 | 32 | `POST` | `/api/v1/goals` | Yeni hedef oluştur | ✅ |
 | 33 | `GET` | `/api/v1/goals` | Hedefleri listele | ✅ |
 | 34 | `POST` | `/api/v1/transactions/analyze-gmail` | Gmail analiz et | ✅ |
+| 35 | `POST` | `/api/v1/users/fcm-token` | FCM Token kaydet/güncelle | ✅ |
+| 36 | `POST` | `/api/v1/users/test-push` | Test push bildirimi gönder | ✅ |
+
+---
+
+### 📱 User & FCM Management (`/api/v1/users`)
+
+---
+
+#### 35. `POST /api/v1/users/fcm-token` — FCM Token Kaydet/Güncelle
+
+Kullanıcının mobil cihazından aldığı Firebase Cloud Messaging (FCM) token'ını veritabanına kaydeder. Bildirim gönderimi için bu token kullanılır.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body:**
+```json
+{
+  "token": "fcm_device_token_string_here"
+}
+```
+
+---
+
+#### 36. `POST /api/v1/users/test-push` — Test Push Bildirimi Gönder
+
+Giriş yapmış olan kullanıcıya, kayıtlı token'ı üzerinden anlık test bildirimi gönderir.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body:**
+```json
+{
+  "title": "Test Başlığı",
+  "message": "Bu bir test bildirim mesajıdır."
+}
+```
 
 ---
 
@@ -1482,8 +1520,9 @@ GET /api/v1/infra-test/error-test
 1. Projeyi bilgisayarınıza indirin.
 2. PostgreSQL veritabanınızda `ceptefinans_db` adında boş bir veritabanı oluşturun.
 3. `src/main/resources/application.properties` dosyasındaki veritabanı kullanıcı adı ve şifrenizi kendi yerel ortamınıza göre düzenleyin. (Bağlantı portu: 5433).
-4. Projeyi IDE'niz (IntelliJ IDEA vb.) üzerinden çalıştırın.
-5. Veritabanı tabloları Hibernate (ddl-auto) tarafından otomatik oluşturulacak ve varsayılan kategoriler yüklenecektir.
+4. **Firebase:** `src/main/resources/firebase-service-account.json` dosyasının geçerli olduğundan emin olun.
+5. Projeyi IDE'niz (IntelliJ IDEA vb.) üzerinden çalıştırın.
+6. Veritabanı tabloları Hibernate (ddl-auto) tarafından otomatik oluşturulacak ve varsayılan kategoriler yüklenecektir.
 
 ---
 
