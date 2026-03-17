@@ -49,9 +49,13 @@ Uygulama, "Domain-Driven Design" (Etki Alanı Odaklı Tasarım) prensiplerine ya
 - **Okunmamış Sayısı:** Okunmamış bildirim sayısını getirme.
 - **Okundu İşaretleme:** Bildirimleri okundu olarak işaretleme.
 
-### 5. Altyapı Test Modülü (Infrastructure Test)
-- **Sağlık Kontrolü (Ping):** Sistemin ayakta olup olmadığını kontrol eden endpoint.
-- **Hata Testi:** GlobalExceptionHandler'ın doğru çalıştığını test eden endpoint.
+### 6. Pinti Özel Özellikleri (Pinti Domain) [YENİ]
+- **Bento Layout:** Kullanıcı arayüz yerleşiminin (widget dizilimi) bulutta saklanması.
+- **Wealth Orbit (Analitik):** Bütçe limitine göre harcama hızını gezegen hızı olarak simüle eden analitik motoru.
+- **Impulse Vault (Dürtüsel Kasa):** 48 saatlik harcamama yemini (kilidi) ve kilit kırma (BROKEN status) kontrolü.
+- **AI Roast (Gemini):** Haftalık harcamaların Gemini AI tarafından sarkastik bir dille eleştirilmesi.
+- **Gmail Analizi:** Gmail üzerindeki e-faturaların otomatik taranması ve finansal verilere dönüştürülmesi.
+- **Hedef ve Alışkanlık Takibi:** Finansal birikim hedefleri ve 30 günlük harcamasız gün (streak) heatmap verisi.
 
 ---
 
@@ -123,6 +127,14 @@ Tüm endpointler aşağıdaki genel sarmalayıcı (wrapper) yapı ile yanıt dö
 | `MANUAL` | Elle girilen |
 | `SMS` | Banka SMS'inden gelen |
 | `OCR` | Fiş tarama ile gelen |
+| `GMAIL` | Gmail e-posta tarama ile gelen |
+
+### LockStatus (Impulse Vault)
+| Değer | Açıklama |
+|-------|----------|
+| `ACTIVE` | Kilit aktif (48 saat dolmadı) |
+| `BROKEN` | Kilit harcama yapılarak kırıldı |
+| `UNLOCKED` | 48 saat başarıyla doldu ve kilit açıldı |
 
 ---
 
@@ -852,13 +864,106 @@ Content-Type: application/json
 
 **Response `data` Alanları:**
 
-| Alan | Tip | Açıklama |
-|------|-----|----------|
 | `amount` | decimal | Analiz edilen tutar |
 | `transactionDate` | string (YYYY-MM-DD) | Analiz edilen tarih |
 | `description` | string | Analiz edilen kurum/yer adı |
 | `suggestedCategory` | string | Önerilen kategori |
 | `type` | string | İşlem tipi (`INCOME` veya `EXPENSE`) |
+
+---
+
+#### 12a. `POST /api/v1/transactions/analyze-gmail` — Gmail Analiz Et
+
+Kullanıcının Google Access Token'ını kullanarak son X gündeki e-faturaları ve harcamaları tarar.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body:**
+
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `accessToken` | string | Evet | Kullanıcının Google OAuth2 Access Token'ı |
+| `daysToScan` | integer | Hayır | Geriye dönük kaç gün taranacak? (Varsayılan: 7) |
+
+**Response (200 OK):**
+Dönen veri `List<SmsAnalysisResponse>` tipindedir.
+
+---
+
+### 🎨 Layout (`/api/v1/user/layout`)
+
+---
+
+#### 26. `POST /api/v1/user/layout` — Arayüz Yerleşimini Kaydet
+
+**Request Body:**
+```json
+{
+  "widgets": ["BudgetSummary", "WealthOrbit", "RecentTransactions"]
+}
+```
+
+---
+
+#### 27. `GET /api/v1/user/layout` — Arayüz Yerleşimini Getir
+
+---
+
+### 🪐 Analytics (`/api/v1/analytics`)
+
+---
+
+#### 28. `GET /api/v1/analytics/orbit` — Wealth Orbit Verilerini Getir
+
+Bütçelere göre "gezegen" hızlarını ve durumlarını döner.
+
+**Response `data` Alanları:**
+| Alan | Tip | Açıklama |
+|------|-----|----------|
+| `planetName` | string | Kategorinin adı |
+| `currentAmount` | decimal | Mevcut harcama |
+| `limit` | decimal | Bütçe limiti |
+| `orbitSpeedMs` | long | Animasyon hızı (Harcama arttıkça azalır) |
+| `isVibrating` | boolean | Limit aşıldı mı? |
+
+---
+
+### 🔒 Impulse Vault (`/api/v1/vault`)
+
+---
+
+#### 29. `POST /api/v1/vault` — Harcama Kilidi Oluştur
+
+48 saatlik harcamama yemini kasası oluşturur.
+
+**Request Body:**
+```json
+{
+  "categoryId": 6,
+  "amount": 500.0
+}
+```
+
+---
+
+### 🤖 AI Roast (`/api/v1/ai`)
+
+---
+
+#### 30. `GET /api/v1/ai/roast` — Finansal Roast Üret
+Gemini tarafından üretilen eleştiriyi döner.
+
+---
+
+### 🎯 Goals & Habits (`/api/v1/goals` & `/api/v1/habits`)
+
+---
+
+#### 31. `GET /api/v1/habits/streak` — 30 Günlük Streak Map
+Son 30 günün harcama profilini (harcamasız gün = true) `List<Boolean>` olarak döner.
+
+#### 32. `POST /api/v1/goals` — Yeni Hedef Oluştur
+#### 33. `GET /api/v1/goals` — Hedefleri Listele
 
 ---
 
@@ -1360,6 +1465,15 @@ GET /api/v1/infra-test/error-test
 | 23 | `GET` | `/api/v1/categories` | Tüm kategorileri listele | ✅ |
 | 24 | `GET` | `/api/v1/infra-test/ping` | Sistem sağlık kontrolü | ❌ |
 | 25 | `GET` | `/api/v1/infra-test/error-test` | Hata testi | ❌ |
+| 26 | `POST` | `/api/v1/user/layout` | Layout kaydet | ✅ |
+| 27 | `GET` | `/api/v1/user/layout` | Layout getir | ✅ |
+| 28 | `GET` | `/api/v1/analytics/orbit` | Orbit verileri | ✅ |
+| 29 | `POST` | `/api/v1/vault` | Harcama kilidi oluştur | ✅ |
+| 30 | `GET` | `/api/v1/ai/roast` | AI Roast üret | ✅ |
+| 31 | `GET` | `/api/v1/habits/streak` | 30 günlük heatmap | ✅ |
+| 32 | `POST` | `/api/v1/goals` | Yeni hedef oluştur | ✅ |
+| 33 | `GET` | `/api/v1/goals` | Hedefleri listele | ✅ |
+| 34 | `POST` | `/api/v1/transactions/analyze-gmail` | Gmail analiz et | ✅ |
 
 ---
 

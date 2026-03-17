@@ -10,29 +10,47 @@ import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
 
-    // Tarih aralığına göre getir (Filtreleme için)
-    List<Transaction> findAllByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(
-            UUID userId, LocalDate startDate, LocalDate endDate
-    );
+        // Tarih aralığına göre getir (Filtreleme için)
+        List<Transaction> findAllByUserIdAndTransactionDateBetweenOrderByTransactionDateDesc(
+                        UUID userId, LocalDate startDate, LocalDate endDate);
 
-    // Dashboard için: Belirli bir aydaki toplam GELİR ve GİDERİ hesapla
-    // Bu, Java tarafında döngü kurmaktan çok daha hızlıdır (Database tarafında toplanır).
-    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'INCOME'")
-    Double findTotalIncome(@Param("userId") UUID userId);
+        // Dashboard için: Belirli bir aydaki toplam GELİR ve GİDERİ hesapla
+        // Bu, Java tarafında döngü kurmaktan çok daha hızlıdır (Database tarafında
+        // toplanır).
+        @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'INCOME'")
+        Double findTotalIncome(@Param("userId") UUID userId);
 
-    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'EXPENSE'")
-    Double findTotalExpense(@Param("userId") UUID userId);
+        @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'EXPENSE'")
+        Double findTotalExpense(@Param("userId") UUID userId);
 
-    List<Transaction> findAllByUserIdOrderByTransactionDateDesc(UUID userId);
+        List<Transaction> findAllByUserIdOrderByTransactionDateDesc(UUID userId);
 
-    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId " +
-            "AND t.category.id = :categoryId " +
-            "AND t.type = 'EXPENSE' " +
-            "AND t.transactionDate BETWEEN :startDate AND :endDate")
-    Double findTotalExpenseByCategoryAndDate(
-            @Param("userId") UUID userId,
-            @Param("categoryId") Long categoryId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
+        @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId " +
+                        "AND t.category.id = :categoryId " +
+                        "AND t.type = 'EXPENSE' " +
+                        "AND t.transactionDate BETWEEN :startDate AND :endDate")
+        Double findTotalExpenseByCategoryAndDate(
+                        @Param("userId") UUID userId,
+                        @Param("categoryId") Long categoryId,
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
+
+        @Query("SELECT AVG(t.amount) FROM Transaction t JOIN t.user u " +
+                        "WHERE u.id != :userId " +
+                        "AND t.category.id = :categoryId " +
+                        "AND t.type = 'EXPENSE' " +
+                        "AND u.age BETWEEN :minAge AND :maxAge " +
+                        "AND u.income BETWEEN :minIncome AND :maxIncome " +
+                        "AND u.occupation = :occupation " +
+                        "AND t.transactionDate BETWEEN :startDate AND :endDate")
+        Double findAverageSpendingByDemographics(
+                        @Param("userId") UUID userId,
+                        @Param("categoryId") Long categoryId,
+                        @Param("minAge") Integer minAge,
+                        @Param("maxAge") Integer maxAge,
+                        @Param("minIncome") java.math.BigDecimal minIncome,
+                        @Param("maxIncome") java.math.BigDecimal maxIncome,
+                        @Param("occupation") String occupation,
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
 }

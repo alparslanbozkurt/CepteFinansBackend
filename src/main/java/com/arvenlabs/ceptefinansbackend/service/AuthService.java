@@ -88,10 +88,11 @@ public class AuthService {
             throw new RuntimeException("E-posta adresiniz zaten onaylanmış. Giriş yapabilirsiniz.");
         }
 
-        // Kullanıcının en son üretilen, kullanılmamış onay kodunu getir (Senin yazdığın o harika sorgu!)
+        // Kullanıcının en son üretilen, kullanılmamış onay kodunu getir (Senin yazdığın
         SecurityCode securityCode = securityCodeRepository
                 .findFirstByUserAndTypeAndIsUsedFalseOrderByCreatedAtDesc(user, SecurityCodeType.EMAIL_VERIFICATION)
-                .orElseThrow(() -> new RuntimeException("Geçerli bir doğrulama kodu bulunamadı. Lütfen yeni kod isteyin."));
+                .orElseThrow(
+                        () -> new RuntimeException("Geçerli bir doğrulama kodu bulunamadı. Lütfen yeni kod isteyin."));
 
         // Kod doğru mu?
         if (!securityCode.getCode().equals(request.getCode())) {
@@ -135,8 +136,7 @@ public class AuthService {
 
         // Şifre kontrolü
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
         String accessToken = jwtService.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getEmail());
