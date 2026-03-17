@@ -11,4 +11,5 @@ public interface SecurityCodeRepository extends JpaRepository<SecurityCode, UUID
     // Kullanıcıya ait, kullanılmamış ve belirli tipteki son kodu bul
     Optional<SecurityCode> findFirstByUserAndTypeAndIsUsedFalseOrderByCreatedAtDesc(User user, SecurityCodeType type);
     Optional<SecurityCode> findByCodeAndType(String code, SecurityCodeType type);
+    void deleteAllByUserId(UUID userId);
 }

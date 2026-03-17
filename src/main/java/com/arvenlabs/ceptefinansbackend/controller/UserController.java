@@ -3,6 +3,7 @@ package com.arvenlabs.ceptefinansbackend.controller;
 import com.arvenlabs.ceptefinansbackend.model.entity.User;
 import com.arvenlabs.ceptefinansbackend.repository.UserRepository;
 import com.arvenlabs.ceptefinansbackend.service.FCMService;
+import com.arvenlabs.ceptefinansbackend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,6 +19,7 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final FCMService fcmService;
+    private final UserService userService;
 
     @PostMapping("/fcm-token")
     public ResponseEntity<String> updateFcmToken(@RequestBody Map<String, String> request) {
@@ -60,5 +62,16 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Hata: " + e.getMessage());
         }
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<String> deleteMyAccount() {
+        // İsteği atan kullanıcıyı JWT'den bul
+        String email = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+
+        // Servisi çağırıp tüm verileri yok et
+        userService.deleteCurrentUserAndAllData(email);
+
+        return ResponseEntity.ok("Hesabınız ve tüm verileriniz kalıcı olarak silinmiştir.");
     }
 }

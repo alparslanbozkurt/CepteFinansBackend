@@ -161,11 +161,10 @@ Yeni bir kullanıcı hesabı oluşturur. Kayıt başarılı olduğunda **token d
 
 **Request Body:**
 
-| Alan | Tip | Zorunlu | Açıklama |
-|------|-----|---------|----------|
 | `fullName` | string | Evet | Kullanıcının tam adı |
 | `email` | string | Evet | E-posta adresi |
 | `password` | string | Evet | Şifre |
+| `isTermsAccepted` | boolean | Evet | Kullanım koşullarının kabulü (true olmalı) |
 
 ```http
 POST /api/v1/auth/register
@@ -176,7 +175,8 @@ Content-Type: application/json
 {
   "fullName": "Alparslan Bozkurt",
   "email": "deneme1@arvenlabs.com",
-  "password": "GucluBirSifre123"
+  "password": "GucluBirSifre123",
+  "isTermsAccepted": true
 }
 ```
 
@@ -1477,6 +1477,7 @@ GET /api/v1/infra-test/error-test
 | 34 | `POST` | `/api/v1/transactions/analyze-gmail` | Gmail analiz et | ✅ |
 | 35 | `POST` | `/api/v1/users/fcm-token` | FCM Token kaydet/güncelle | ✅ |
 | 36 | `POST` | `/api/v1/users/test-push` | Test push bildirimi gönder | ✅ |
+| 37 | `DELETE` | `/api/v1/users/me` | Hesabı ve tüm verileri sil | ✅ |
 
 ---
 
@@ -1499,6 +1500,8 @@ Kullanıcının mobil cihazından aldığı Firebase Cloud Messaging (FCM) token
 
 ---
 
+---
+
 #### 36. `POST /api/v1/users/test-push` — Test Push Bildirimi Gönder
 
 Giriş yapmış olan kullanıcıya, kayıtlı token'ı üzerinden anlık test bildirimi gönderir.
@@ -1510,6 +1513,24 @@ Giriş yapmış olan kullanıcıya, kayıtlı token'ı üzerinden anlık test bi
 {
   "title": "Test Başlığı",
   "message": "Bu bir test bildirim mesajıdır."
+}
+```
+
+---
+
+#### 37. `DELETE /api/v1/users/me` — Hesabı ve Tüm Verileri Sil
+
+Kullanıcının hesabını ve bu hesaba bağlı tüm verileri (harcamalar, bütçeler, bildirimler, kilitler vb.) kalıcı olarak siler. Bu işlem geri alınamaz.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Hesabınız ve tüm verileriniz kalıcı olarak silinmiştir.",
+  "data": null,
+  "timestamp": "2026-03-17T20:15:00.000000"
 }
 ```
 

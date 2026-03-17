@@ -10,6 +10,7 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     // Kullanıcının bildirimlerini tarihe göre azalan (en yeni en üstte) getir
     List<Notification> findAllByUserIdOrderByCreatedAtDesc(UUID userId);
 
+    void deleteAllByUserId(UUID userId);
     // Okunmamış bildirim sayısını getir (Zil ikonundaki sayı için: Örn: 🔔 3)
     long countByUserIdAndIsReadFalse(UUID userId);
 }

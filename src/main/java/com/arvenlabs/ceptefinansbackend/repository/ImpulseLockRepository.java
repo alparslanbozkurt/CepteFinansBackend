@@ -11,7 +11,8 @@ import java.util.UUID;
 
 @Repository
 public interface ImpulseLockRepository extends JpaRepository<ImpulseLock, UUID> {
-    
+
+    void deleteAllByUserId(UUID userId);
     // Find active lock by user and category
     Optional<ImpulseLock> findByUserIdAndCategoryIdAndStatus(UUID userId, Long categoryId, LockStatus status);
     
