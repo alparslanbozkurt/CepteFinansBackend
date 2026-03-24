@@ -966,6 +966,35 @@ Son 30 günün harcama profilini (harcamasız gün = true) `List<Boolean>` olara
 #### 32. `POST /api/v1/goals` — Yeni Hedef Oluştur
 #### 33. `GET /api/v1/goals` — Hedefleri Listele
 
+#### 33a. `PUT /api/v1/goals/{id}` — Hedef Güncelleme
+Mevcut bir hedefi günceller.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Path Parameters:**
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `id` | UUID | Güncellenecek hedefin ID'si |
+
+**Request Body:**
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `title` | string | Evet | Hedef başlığı |
+| `targetAmount` | decimal | Evet | Hedeflenen tutar |
+| `deadline` | string (YYYY-MM-DD) | Evet | Hedeflenen tarih |
+
+---
+
+#### 33b. `DELETE /api/v1/goals/{id}` — Hedef Silme
+Belirtilen ID'ye sahip hedefi siler.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Path Parameters:**
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `id` | UUID | Silinecek hedefin ID'si |
+
 ---
 
 ### 📈 Budgets (`/api/v1/budgets`)
@@ -1474,6 +1503,8 @@ GET /api/v1/infra-test/error-test
 | 31 | `GET` | `/api/v1/habits/streak` | 30 günlük heatmap | ✅ |
 | 32 | `POST` | `/api/v1/goals` | Yeni hedef oluştur | ✅ |
 | 33 | `GET` | `/api/v1/goals` | Hedefleri listele | ✅ |
+| 33a | `PUT` | `/api/v1/goals/{id}` | Hedef güncelle | ✅ |
+| 33b | `DELETE` | `/api/v1/goals/{id}` | Hedef sil | ✅ |
 | 34 | `POST` | `/api/v1/transactions/analyze-gmail` | Gmail analiz et | ✅ |
 | 35 | `POST` | `/api/v1/users/fcm-token` | FCM Token kaydet/güncelle | ✅ |
 | 36 | `POST` | `/api/v1/users/test-push` | Test push bildirimi gönder | ✅ |
