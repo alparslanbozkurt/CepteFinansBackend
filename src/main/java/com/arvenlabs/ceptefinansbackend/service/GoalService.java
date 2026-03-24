@@ -69,6 +69,37 @@ public class GoalService {
         return mapToResponse(saved);
     }
 
+    @Transactional
+    public GoalResponse updateGoal(UUID goalId, GoalRequest request) {
+        User user = getCurrentUser();
+        Goal goal = goalRepository.findById(goalId)
+                .orElseThrow(() -> new RuntimeException("Hedef bulunamadı"));
+
+        if (!goal.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Bu hedef üzerinde işlem yapma yetkiniz yok.");
+        }
+
+        goal.setTitle(request.getTitle());
+        goal.setTargetAmount(request.getTargetAmount());
+        goal.setDeadline(request.getDeadline());
+
+        Goal saved = goalRepository.save(goal);
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public void deleteGoal(UUID goalId) {
+        User user = getCurrentUser();
+        Goal goal = goalRepository.findById(goalId)
+                .orElseThrow(() -> new RuntimeException("Hedef bulunamadı"));
+
+        if (!goal.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Bu hedef üzerinde işlem yapma yetkiniz yok.");
+        }
+
+        goalRepository.delete(goal);
+    }
+
     private GoalResponse mapToResponse(Goal goal) {
         int percentage = 0;
         if (goal.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {

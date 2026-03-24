@@ -38,4 +38,15 @@ public class GoalController {
         }
         return ResponseEntity.ok(ApiResponse.success(goalService.addSavings(id, amount), "Birikim hedefinize başarıyla eklendi."));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<GoalResponse>> updateGoal(@PathVariable UUID id, @RequestBody GoalRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(goalService.updateGoal(id, request), "Hedef başarıyla güncellendi."));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteGoal(@PathVariable UUID id) {
+        goalService.deleteGoal(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Hedef başarıyla silindi."));
+    }
 }
