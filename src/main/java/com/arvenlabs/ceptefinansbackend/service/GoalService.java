@@ -39,7 +39,6 @@ public class GoalService {
                 .title(request.getTitle())
                 .targetAmount(request.getTargetAmount())
                 .savedAmount(BigDecimal.ZERO)
-                .deadline(request.getDeadline())
                 .build();
 
         Goal saved = goalRepository.save(goal);
@@ -81,7 +80,6 @@ public class GoalService {
 
         goal.setTitle(request.getTitle());
         goal.setTargetAmount(request.getTargetAmount());
-        goal.setDeadline(request.getDeadline());
 
         Goal saved = goalRepository.save(goal);
         return mapToResponse(saved);
@@ -114,7 +112,6 @@ public class GoalService {
                 .title(goal.getTitle())
                 .targetAmount(goal.getTargetAmount())
                 .savedAmount(goal.getSavedAmount())
-                .deadline(goal.getDeadline())
                 .completionPercentage(Math.min(percentage, 100))
                 .build();
     }
