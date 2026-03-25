@@ -36,18 +36,23 @@ public class PasswordResetService {
         // 3. Benzersiz bir token string'i oluştur
         String token = UUID.randomUUID().toString();
 
-        // 4. Token entity'sini oluştur ve süresini belirle (15 dakika)
-        PasswordResetToken resetToken = PasswordResetToken.builder()
-                .token(token)
-                .user(user)
-                .expiryDate(LocalDateTime.now().plusMinutes(15))
-                .build();
+        // 4. Mevcut token varsa güncelle, yoksa yeni oluştur (duplicate key hatasını önler)
+        PasswordResetToken resetToken = tokenRepository.findByUser(user)
+                .map(existingToken -> {
+                    existingToken.setToken(token);
+                    existingToken.setExpiryDate(LocalDateTime.now().plusMinutes(15));
+                    return existingToken;
+                })
+                .orElse(PasswordResetToken.builder()
+                        .token(token)
+                        .user(user)
+                        .expiryDate(LocalDateTime.now().plusMinutes(15))
+                        .build());
 
-        // 5. Token'ı veritabanına kaydet
-        tokenRepository.save(resetToken);
+        // 5. Token'ı veritabanına kaydet (flush ile mail göndermeden önce persist'i garantile)
+        tokenRepository.saveAndFlush(resetToken);
 
-        // 6. YENİ: Link oluşturma işini ve e-posta şablonunu EmailService'e devrettik!
-        // application.properties'deki frontend URL'sini (localhost:3000) kullanarak maili asenkron atacak.
+        // 6. Link oluşturma işini ve e-posta şablonunu EmailService'e devrettik
         emailService.sendPasswordResetEmail(user.getEmail(), token);
     }
 
