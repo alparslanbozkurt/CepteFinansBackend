@@ -4,7 +4,10 @@ import com.arvenlabs.ceptefinansbackend.dto.response.NotificationResponse;
 import com.arvenlabs.ceptefinansbackend.model.entity.Notification;
 import com.arvenlabs.ceptefinansbackend.model.entity.User;
 import com.arvenlabs.ceptefinansbackend.repository.NotificationRepository;
+import com.arvenlabs.ceptefinansbackend.repository.UserDeviceTokenRepository;
 import com.arvenlabs.ceptefinansbackend.repository.UserRepository;
+import com.arvenlabs.ceptefinansbackend.model.entity.UserDeviceToken;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +26,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final UserDeviceTokenRepository deviceTokenRepository;
     private final FCMService fcmService; // Firebase servisimizi enjekte ettik
 
     // 1. Backend'in içinden çağrılacak metod (TransactionService vb. kullanacak)
@@ -38,18 +42,22 @@ public class NotificationService {
 
         log.info("🔔 Bildirim Kaydedildi -> Kime: {} | Mesaj: {}", user.getEmail(), message);
 
-        // B) Firebase (FCM) Push Notification Gönderimi
-        // Asenkron çalıştırıyoruz ki harcama kaydetme süresini (API yanıtını) yavaşlatmasın
-        if (user.getFcmToken() != null && !user.getFcmToken().isEmpty()) {
+        // B) Firebase (FCM) Push Notification Gönderimi - Tüm cihazlara (Multi-device)
+        List<UserDeviceToken> devices = deviceTokenRepository.findAllByUser(user);
+        
+        if (!devices.isEmpty()) {
             CompletableFuture.runAsync(() -> {
-                fcmService.sendPushNotification(user.getFcmToken(), title, message);
-                log.info("📱 Firebase'e iletildi -> Cihaz: {}", user.getFcmToken());
-            }).exceptionally(ex -> {
-                log.error("❌ Firebase bildirimi gönderilemedi: {}", ex.getMessage());
-                return null;
+                for (UserDeviceToken device : devices) {
+                    try {
+                        fcmService.sendPushNotification(device.getFcmToken(), title, message);
+                        log.info("📱 Firebase'e iletildi -> Platform: {} | Cihaz: {}", device.getPlatform(), device.getFcmToken());
+                    } catch (Exception ex) {
+                        log.error("❌ Firebase bildirimi gönderilemedi (Platform: {}): {}", device.getPlatform(), ex.getMessage());
+                    }
+                }
             });
         } else {
-            log.warn("⚠️ Kullanıcının FCM Token'ı yok, anlık bildirim atılamadı.");
+            log.warn("⚠️ Kullanıcının FCM cihaz kaydı yok, anlık bildirim atılamadı.");
         }
 
         // C) TODO: İleride Web tarafı için WebSocket (Canlı güncelleme) tetiklenecek.

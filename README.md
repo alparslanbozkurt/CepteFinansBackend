@@ -305,6 +305,38 @@ Content-Type: application/json
 
 ---
 
+#### 35. `POST /api/v1/users/fcm-token` — FCM Cihaz Token Kaydet
+
+Kullanıcının giriş yaptığı cihazın Firebase Cloud Messaging (FCM) token'ını kaydeder.
+Birden fazla cihaz (Web, Android, iOS) desteklenir. Gelen token boş/null ise mevcut mobil cihazların token'ı ezilmez (Web client login'lerinde koruma).
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body:**
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `token` | string | Evet | Cihaza ait eşsiz FCM token'ı |
+| `platform` | string | Hayır | Cihaz platformu (`ANDROID`, `IOS`, `WEB`) (Varsayılan: `UNKNOWN`) |
+
+```http
+POST /api/v1/users/fcm-token
+Authorization: Bearer <Access_Token>
+Content-Type: application/json
+```
+
+```json
+{
+  "token": "d7Hk_J1wQ...",
+  "platform": "ANDROID"
+}
+```
+
+**Response (200 OK):**
+```json
+"Cihaz token başarıyla kaydedildi. Platform: ANDROID"
+```
+---
+
 #### 4. `POST /api/v1/auth/logout` — Güvenli Çıkış
 
 Refresh Token'ı veritabanından kalıcı olarak siler (Revocation).
