@@ -7,7 +7,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -40,8 +39,6 @@ public class Goal {
     @Builder.Default
     private BigDecimal savedAmount = BigDecimal.ZERO;
 
-    @Column(nullable = false)
-    private LocalDate deadline;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
