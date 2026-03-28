@@ -993,12 +993,140 @@ Gemini tarafından üretilen eleştiriyi döner.
 ---
 
 #### 31. `GET /api/v1/habits/streak` — 30 Günlük Streak Map
-Son 30 günün harcama profilini (harcamasız gün = true) `List<Boolean>` olarak döner.
+Son 30 günün harcama profilini (harcamasız gün = true, harcamalı gün = false) `List<Boolean>` olarak döner.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "30 günlük alışkanlık serisi başarıyla getirildi.",
+  "data": [
+    true, true, false, true, false, true
+  ],
+  "timestamp": "2026-03-28T14:00:00.000000"
+}
+```
+
+---
 
 #### 32. `POST /api/v1/goals` — Yeni Hedef Oluştur
+
+Kullanıcı için yeni bir finansal hedef (birikim vb.) oluşturur.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body:**
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `title` | string | Evet | Hedef başlığı |
+| `targetAmount` | decimal | Evet | Hedeflenen tutar |
+
+```http
+POST /api/v1/goals
+Authorization: Bearer <Access_Token>
+Content-Type: application/json
+```
+
+```json
+{
+  "title": "Araba Peşinatı",
+  "targetAmount": 150000.00
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Finansal hedef başarıyla oluşturuldu.",
+  "data": {
+    "id": "e43b1a2d-4567-890a-bcde-123456789abc",
+    "title": "Araba Peşinatı",
+    "targetAmount": 150000.00,
+    "savedAmount": 0.00,
+    "completionPercentage": 0
+  },
+  "timestamp": "2026-03-28T14:00:00.000000"
+}
+```
+
+---
+
 #### 33. `GET /api/v1/goals` — Hedefleri Listele
 
-#### 33a. `PUT /api/v1/goals/{id}` — Hedef Güncelleme
+Kullanıcının tüm hedeflerini listeler.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Hedefler başarıyla getirildi.",
+  "data": [
+    {
+      "id": "e43b1a2d-4567-890a-bcde-123456789abc",
+      "title": "Araba Peşinatı",
+      "targetAmount": 150000.00,
+      "savedAmount": 15000.00,
+      "completionPercentage": 10
+    }
+  ],
+  "timestamp": "2026-03-28T14:00:00.000000"
+}
+```
+
+---
+
+#### 33a. `POST /api/v1/goals/{id}/add-savings` — Hedefe Birikim Ekle
+
+Mevcut bir hedefe birikim miktarı ekler.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Path Parameters:**
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `id` | UUID | Birikim eklenecek hedefin ID'si |
+
+**Request Body:**
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `amount` | decimal | Evet | Eklenecek birikim tutarı |
+
+```http
+POST /api/v1/goals/e43b1a2d-4567-890a-bcde-123456789abc/add-savings
+Authorization: Bearer <Access_Token>
+Content-Type: application/json
+```
+
+```json
+{
+  "amount": 5000.00
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Birikim hedefinize başarıyla eklendi.",
+  "data": {
+    "id": "e43b1a2d-4567-890a-bcde-123456789abc",
+    "title": "Araba Peşinatı",
+    "targetAmount": 150000.00,
+    "savedAmount": 20000.00,
+    "completionPercentage": 13
+  },
+  "timestamp": "2026-03-28T14:00:00.000000"
+}
+```
+
+---
+
+#### 33b. `PUT /api/v1/goals/{id}` — Hedef Güncelleme
 Mevcut bir hedefi günceller.
 
 **Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
@@ -1013,11 +1141,39 @@ Mevcut bir hedefi günceller.
 |------|-----|---------|----------|
 | `title` | string | Evet | Hedef başlığı |
 | `targetAmount` | decimal | Evet | Hedeflenen tutar |
-| `deadline` | string (YYYY-MM-DD) | Evet | Hedeflenen tarih |
+
+```http
+PUT /api/v1/goals/e43b1a2d-4567-890a-bcde-123456789abc
+Authorization: Bearer <Access_Token>
+Content-Type: application/json
+```
+
+```json
+{
+  "title": "Ev Peşinatı",
+  "targetAmount": 300000.00
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Hedef başarıyla güncellendi.",
+  "data": {
+    "id": "e43b1a2d-4567-890a-bcde-123456789abc",
+    "title": "Ev Peşinatı",
+    "targetAmount": 300000.00,
+    "savedAmount": 20000.00,
+    "completionPercentage": 6
+  },
+  "timestamp": "2026-03-28T14:00:00.000000"
+}
+```
 
 ---
 
-#### 33b. `DELETE /api/v1/goals/{id}` — Hedef Silme
+#### 33c. `DELETE /api/v1/goals/{id}` — Hedef Silme
 Belirtilen ID'ye sahip hedefi siler.
 
 **Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
@@ -1026,6 +1182,21 @@ Belirtilen ID'ye sahip hedefi siler.
 | Parametre | Tip | Açıklama |
 |-----------|-----|----------|
 | `id` | UUID | Silinecek hedefin ID'si |
+
+```http
+DELETE /api/v1/goals/e43b1a2d-4567-890a-bcde-123456789abc
+Authorization: Bearer <Access_Token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Hedef başarıyla silindi.",
+  "data": null,
+  "timestamp": "2026-03-28T14:00:00.000000"
+}
+```
 
 ---
 
@@ -1535,8 +1706,9 @@ GET /api/v1/infra-test/error-test
 | 31 | `GET` | `/api/v1/habits/streak` | 30 günlük heatmap | ✅ |
 | 32 | `POST` | `/api/v1/goals` | Yeni hedef oluştur | ✅ |
 | 33 | `GET` | `/api/v1/goals` | Hedefleri listele | ✅ |
-| 33a | `PUT` | `/api/v1/goals/{id}` | Hedef güncelle | ✅ |
-| 33b | `DELETE` | `/api/v1/goals/{id}` | Hedef sil | ✅ |
+| 33a | `POST` | `/api/v1/goals/{id}/add-savings` | Hedefe birikim ekle | ✅ |
+| 33b | `PUT` | `/api/v1/goals/{id}` | Hedef güncelle | ✅ |
+| 33c | `DELETE` | `/api/v1/goals/{id}` | Hedef sil | ✅ |
 | 34 | `POST` | `/api/v1/transactions/analyze-gmail` | Gmail analiz et | ✅ |
 | 35 | `POST` | `/api/v1/users/fcm-token` | FCM Token kaydet/güncelle | ✅ |
 | 36 | `POST` | `/api/v1/users/test-push` | Test push bildirimi gönder | ✅ |
