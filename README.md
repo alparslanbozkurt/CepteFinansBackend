@@ -1710,9 +1710,71 @@ GET /api/v1/infra-test/error-test
 | 33b | `PUT` | `/api/v1/goals/{id}` | Hedef güncelle | ✅ |
 | 33c | `DELETE` | `/api/v1/goals/{id}` | Hedef sil | ✅ |
 | 34 | `POST` | `/api/v1/transactions/analyze-gmail` | Gmail analiz et | ✅ |
+| 34a | `GET` | `/api/v1/profile/me` | Profil bilgilerini getir | ✅ |
+| 34b | `PUT` | `/api/v1/profile/me` | Profil bilgilerini güncelle | ✅ |
 | 35 | `POST` | `/api/v1/users/fcm-token` | FCM Token kaydet/güncelle | ✅ |
 | 36 | `POST` | `/api/v1/users/test-push` | Test push bildirimi gönder | ✅ |
 | 37 | `DELETE` | `/api/v1/users/me` | Hesabı ve tüm verileri sil | ✅ |
+
+---
+
+### 👤 Profile API (`/api/v1/profile`)
+
+---
+
+#### 34a. `GET /api/v1/profile/me` — Profil Bilgilerini Getir
+Giriş yapmış kullanıcının profil bilgilerini döner.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Profil bilgileri başarıyla getirildi.",
+  "data": {
+    "id": "e43b1a2d-4567-890a-bcde-123456789abc",
+    "fullName": "Alparslan Bozkurt",
+    "email": "deneme1@arvenlabs.com",
+    "age": 25,
+    "income": 50000.00,
+    "occupation": "Yazılım Mühendisi",
+    "createdAt": "2026-03-28T14:00:00"
+  },
+  "timestamp": "2026-03-28T14:00:00.000000"
+}
+```
+
+---
+
+#### 34b. `PUT /api/v1/profile/me` — Profil Bilgilerini Güncelle
+Kullanıcının profil bilgilerini günceller. Yalnızca gönderilen alanlar güncellenir.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request Body:**
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `fullName` | string | Hayır | Tam ad |
+| `age` | integer | Hayır | Yaş |
+| `income` | decimal | Hayır | Gelir |
+| `occupation` | string | Hayır | Meslek |
+
+```http
+PUT /api/v1/profile/me
+Authorization: Bearer <Access_Token>
+Content-Type: application/json
+```
+
+```json
+{
+  "age": 26,
+  "income": 60000.50
+}
+```
+
+**Response (200 OK):**
+*(Geriye güncellenmiş profil bilgilerini içeren bir response nesnesi döner)*
 
 ---
 
