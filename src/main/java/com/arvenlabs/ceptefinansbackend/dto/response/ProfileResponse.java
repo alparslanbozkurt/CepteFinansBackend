@@ -16,5 +16,6 @@ public class ProfileResponse {
     private Integer age;
     private BigDecimal income;
     private String occupation;
+    private String profileImageUrl;
     private LocalDateTime createdAt;
 }
