@@ -50,7 +50,7 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestParam String email) {
         passwordResetService.processForgotPassword(email);
-        return ResponseEntity.ok(ApiResponse.success(null, "Eğer e-posta adresiniz sistemimizde kayıtlıysa, şifre sıfırlama bağlantısı gönderilmiştir."));
+        return ResponseEntity.ok(ApiResponse.success(null, "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi."));
     }
 
     // REVİZE EDİLDİ: ApiResponse yapısına geçirildi
