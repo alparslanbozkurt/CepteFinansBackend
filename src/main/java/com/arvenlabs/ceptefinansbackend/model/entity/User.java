@@ -63,6 +63,13 @@ public class User implements UserDetails {
     @Column(name = "occupation")
     private String occupation;
 
+    @Lob
+    @Column(name = "profile_image")
+    private byte[] profileImage;
+
+    @Column(name = "profile_image_content_type")
+    private String profileImageContentType;
+
     /// USER METOTLARI
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

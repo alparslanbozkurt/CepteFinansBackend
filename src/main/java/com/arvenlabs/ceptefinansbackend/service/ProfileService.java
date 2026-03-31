@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -41,10 +43,15 @@ public class ProfileService {
         return mapToResponse(user);
     }
 
+    public void uploadProfileImage(MultipartFile file) throws IOException {
+        User user = getCurrentUser();
+        user.setProfileImage(file.getBytes());
+        user.setProfileImageContentType(file.getContentType());
+        userRepository.save(user);
+    }
+
     private User getCurrentUser() {
-        String email = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+        return (com.arvenlabs.ceptefinansbackend.model.entity.User) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
     private ProfileResponse mapToResponse(User user) {
@@ -55,6 +62,7 @@ public class ProfileService {
                 .age(user.getAge())
                 .income(user.getIncome())
                 .occupation(user.getOccupation())
+                .profileImageUrl(user.getProfileImage() != null ? "/api/v1/profile/image/" + user.getId() : null)
                 .createdAt(user.getCreatedAt())
                 .build();
     }

@@ -27,7 +27,7 @@ Uygulama, "Domain-Driven Design" (Etki Alanı Odaklı Tasarım) prensiplerine ya
 - **E-posta Doğrulama:** Kayıt sonrası e-posta doğrulama kodu gönderimi ve doğrulama.
 - **Güvenli Çıkış (Logout):** Refresh token'ların veritabanından kalıcı olarak silinmesi (Revocation).
 - **Veri Şifreleme:** Şifrelerin BCrypt algoritması ile hashlenerek saklanması.
-- **Şifre Sıfırlama (Forgot Password):** E-posta yoluyla 15 dakika geçerli sıfırlama bağlantısı gönderimi. Kullanıcı numaralandırma (user enumeration) saldırılarına karşı koruma.
+- **Şifre Sıfırlama (Forgot Password):** E-posta yoluyla 15 dakika geçerli sıfırlama bağlantısı gönderimi. Geçersiz e-posta durumunda hata fırlatarak kullanıcıyı bilgilendirme.
 - `fullName` desteği ile kişiselleştirilmiş profil altyapısı.
 
 ### 2. Finans Çekirdeği (Transaction Domain)
@@ -437,7 +437,7 @@ Content-Type: application/json
 
 #### 6. `POST /api/v1/auth/forgot-password` — Şifre Sıfırlama Bağlantısı Gönder
 
-Kullanıcının e-posta adresine şifre sıfırlama bağlantısı gönderir. Güvenlik amacıyla, girilen e-posta sistemde kayıtlı olup olmadığından bağımsız olarak her zaman aynı başarı mesajı döner (kullanıcı numaralandırma koruması).
+Kullanıcının e-posta adresine şifre sıfırlama bağlantısı gönderir. Girilen e-posta sistemde kayıtlı değilse hata döner.
 
 > **Not:** Sıfırlama bağlantısı 15 dakika geçerlidir.
 
@@ -458,7 +458,7 @@ POST /api/v1/auth/forgot-password?email=deneme@arvenlabs.com
 ```json
 {
   "success": true,
-  "message": "Eğer e-posta adresiniz sistemimizde kayıtlıysa, şifre sıfırlama bağlantısı gönderilmiştir.",
+  "message": "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.",
   "data": null,
   "timestamp": "2026-02-22T19:20:00.000000"
 }
@@ -1712,6 +1712,8 @@ GET /api/v1/infra-test/error-test
 | 34 | `POST` | `/api/v1/transactions/analyze-gmail` | Gmail analiz et | ✅ |
 | 34a | `GET` | `/api/v1/profile/me` | Profil bilgilerini getir | ✅ |
 | 34b | `PUT` | `/api/v1/profile/me` | Profil bilgilerini güncelle | ✅ |
+| 34c | `POST` | `/api/v1/profile/image` | Profil fotoğrafı yükle | ✅ |
+| 34d | `GET` | `/api/v1/profile/image/{userId}` | Profil fotoğrafını getir | ❌ |
 | 35 | `POST` | `/api/v1/users/fcm-token` | FCM Token kaydet/güncelle | ✅ |
 | 36 | `POST` | `/api/v1/users/test-push` | Test push bildirimi gönder | ✅ |
 | 37 | `DELETE` | `/api/v1/users/me` | Hesabı ve tüm verileri sil | ✅ |
@@ -1739,6 +1741,7 @@ Giriş yapmış kullanıcının profil bilgilerini döner.
     "age": 25,
     "income": 50000.00,
     "occupation": "Yazılım Mühendisi",
+    "profileImageUrl": "/api/v1/profile/image/e43b1a2d-4567-890a-bcde-123456789abc",
     "createdAt": "2026-03-28T14:00:00"
   },
   "timestamp": "2026-03-28T14:00:00.000000"
@@ -1775,6 +1778,44 @@ Content-Type: application/json
 
 **Response (200 OK):**
 *(Geriye güncellenmiş profil bilgilerini içeren bir response nesnesi döner)*
+
+---
+
+#### 34c. `POST /api/v1/profile/image` — Profil Fotoğrafı Yükle
+Kullanıcının profil fotoğrafını yükler. Fotoğraf veritabanında (BYTEA) saklanır.
+
+**Yetki:** Gerekli (`Authorization: Bearer <Access_Token>`)
+
+**Request (Multipart Form Data):**
+| Alan | Tip | Zorunlu | Açıklama |
+|------|-----|---------|----------|
+| `file` | file | Evet | Yüklenecek imaj dosyası |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Profil fotoğrafı başarıyla yüklendi.",
+  "data": null,
+  "timestamp": "2026-03-31T15:00:00"
+}
+```
+
+---
+
+#### 34d. `GET /api/v1/profile/image/{userId}` — Profil Fotoğrafını Getir
+Belirtilen kullanıcının profil fotoğrafını ham imaj verisi olarak döner.
+
+**Yetki:** Gerekmiyor (Profil linki paylaşılabilir/görüntülenebilir)
+
+**Path Parameters:**
+| Parametre | Tip | Açıklama |
+|-----------|-----|----------|
+| `userId` | UUID | Fotoğrafı getirilecek kullanıcının ID'si |
+
+**Response (200 OK):**
+*   **Content-Type:** image/png, image/jpeg vb. (Orijinal dosya tipi)
+*   **Body:** Ham imaj byte verisi.
 
 ---
 
