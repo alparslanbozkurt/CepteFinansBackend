@@ -26,9 +26,9 @@ public class PasswordResetService {
         // 1. Veritabanından e-posta adresine göre kullanıcıyı bul
         Optional<User> userOptional = userRepository.findByEmail(email);
 
-        // 2. Güvenlik Önlemi (User Enumeration Koruması): Kullanıcı yoksa işlem yapma ama hata da fırlatma
+        // 2. Kullanıcı yoksa hata fırlat (Kullanıcı isteği üzerine enumeration koruması kaldırıldı)
         if (userOptional.isEmpty()) {
-            return;
+            throw new RuntimeException("Sistemde bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.");
         }
 
         User user = userOptional.get();
