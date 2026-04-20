@@ -20,4 +20,6 @@ public interface UserDeviceTokenRepository extends JpaRepository<UserDeviceToken
 
     /** Kullanıcı + platform kombinasyonuna göre kayıt bul (upsert için) */
     Optional<UserDeviceToken> findByUserAndPlatform(User user, String platform);
+
+    void deleteAllByUserId(UUID userId);
 }

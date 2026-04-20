@@ -20,8 +20,10 @@ public class UserService {
     private final com.arvenlabs.ceptefinansbackend.repository.ImpulseLockRepository impulseLockRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final SecurityCodeRepository securityCodeRepository;
-    // Varsa diğer repository'lerin (GoalRepository vs.)
-
+    private final GoalRepository goalRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final UserLayoutRepository userLayoutRepository;
+    private final UserDeviceTokenRepository userDeviceTokenRepository;
     @Transactional
     public void deleteCurrentUserAndAllData(String email) {
         User user = userRepository.findByEmail(email)
@@ -36,7 +38,10 @@ public class UserService {
         impulseLockRepository.deleteAllByUserId(userId); // Kilitler gitti
         refreshTokenRepository.deleteAllByUserId(userId);
         securityCodeRepository.deleteAllByUserId(userId);
-        // goalRepository.deleteAllByUserId(userId); // Hedefler (varsa) gitti
+        goalRepository.deleteAllByUserId(userId); // Hedefler gitti
+        passwordResetTokenRepository.deleteAllByUserId(userId); // Şifre sıfırlama tokenları gitti
+        userLayoutRepository.deleteByUserId(userId); // Kullanıcı arayüz yerleşimi gitti
+        userDeviceTokenRepository.deleteAllByUserId(userId); // Cihaz bildirim tokenları gitti
 
         // 2. Tüm veriler temizlendikten sonra en son kullanıcıyı sil
         userRepository.delete(user);

@@ -16,4 +16,5 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     // Kullanıcıya ait mevcut token'ı bulmak için
     Optional<PasswordResetToken> findByUser(User user);
 
+    void deleteAllByUserId(UUID userId);
 }
