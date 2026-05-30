@@ -4,6 +4,7 @@ import com.arvenlabs.ceptefinansbackend.dto.request.LoginRequest;
 import com.arvenlabs.ceptefinansbackend.dto.request.RegisterRequest;
 import com.arvenlabs.ceptefinansbackend.dto.request.VerifyEmailRequest; // Bunu birazdan oluşturacağız
 import com.arvenlabs.ceptefinansbackend.dto.response.AuthResponse;
+import com.arvenlabs.ceptefinansbackend.exception.BadRequestException;
 import com.arvenlabs.ceptefinansbackend.model.entity.RefreshToken;
 import com.arvenlabs.ceptefinansbackend.model.entity.SecurityCode;
 import com.arvenlabs.ceptefinansbackend.model.entity.User;
@@ -87,26 +88,26 @@ public class AuthService {
     public AuthResponse verifyEmail(VerifyEmailRequest request) {
         // Kullanıcıyı bul
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
+                .orElseThrow(() -> new BadRequestException("Kullanıcı bulunamadı."));
 
         if (user.isEmailVerified()) {
-            throw new RuntimeException("E-posta adresiniz zaten onaylanmış. Giriş yapabilirsiniz.");
+            throw new BadRequestException("E-posta adresiniz zaten onaylanmış. Giriş yapabilirsiniz.");
         }
 
         // Kullanıcının en son üretilen, kullanılmamış onay kodunu getir (Senin yazdığın
         SecurityCode securityCode = securityCodeRepository
                 .findFirstByUserAndTypeAndIsUsedFalseOrderByCreatedAtDesc(user, SecurityCodeType.EMAIL_VERIFICATION)
                 .orElseThrow(
-                        () -> new RuntimeException("Geçerli bir doğrulama kodu bulunamadı. Lütfen yeni kod isteyin."));
+                        () -> new BadRequestException("Geçerli bir doğrulama kodu bulunamadı. Lütfen yeni kod isteyin."));
 
         // Kod doğru mu?
         if (!securityCode.getCode().equals(request.getCode())) {
-            throw new RuntimeException("Girdiğiniz kod hatalı!");
+            throw new BadRequestException("Doğrulama kodu hatalı, lütfen tekrar deneyin.");
         }
 
         // Kodun süresi dolmuş mu?
         if (securityCode.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Bu kodun süresi dolmuş (5 dakika). Lütfen yeni bir kod isteyin.");
+            throw new BadRequestException("Bu kodun süresi dolmuş (5 dakika). Lütfen yeni bir kod isteyin.");
         }
 
         // HER ŞEY BAŞARILI: Kodu kullanıldı olarak işaretle

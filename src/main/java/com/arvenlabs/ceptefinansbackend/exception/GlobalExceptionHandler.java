@@ -14,6 +14,16 @@ import java.util.Map;
 @Slf4j // Logger
 public class GlobalExceptionHandler {
 
+    // İş Mantığı / Geçersiz İstek Hataları (400 Bad Request)
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<String>> handleBadRequestException(BadRequestException ex) {
+        log.warn("İş Mantığı Hatası: {}", ex.getMessage());
+        return new ResponseEntity<>(
+                ApiResponse.error(ex.getMessage()),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
     // Genel Hatalar
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<String>> handleAllExceptions(Exception ex) {
